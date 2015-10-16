@@ -1,0 +1,3346 @@
+﻿<?xml version="1.0" encoding="utf-8"?><directiveGroup xsi:noNamespaceSchemaLocation="Msg.Epicor.Mfg.Bpm.DirectiveGroup.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><name>FAI</name><version>9.05.702</version><boSourceGroup boSource="BO"><methods><method><code>CustShip.GetOrderRelInfo</code><businessObject>CustShip</businessObject><name>GetOrderRelInfo</name><preProcDirectives><directive><name>FAI Alert CT ReMove</name><order>10</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText>number of rows in the 'FAI Part Test' query is not less than 1</conditionText><actionText>show informational message based on the FAI Alert template 
+and send e-mail asynchronously based on the EPICOR template</actionText><globalID>faa74120-f2e2-d59a-e211-adc44a1a4c59</globalID><isUpToDate>True</isUpToDate><scope>Null</scope><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode><condition><order>2</order><typeName>QueryConditionType</typeName><operator /><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.702.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:QueryCondition_x002B_QueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Conditions/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;comparison id="ref-3"&amp;gt;&amp;amp;#62;=&amp;lt;/comparison&amp;gt;
+&amp;lt;numRows&amp;gt;1&amp;lt;/numRows&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryText id="ref-4"&amp;gt;for each ttShipDtl no-lock  ,  
+	each Part no-lock  where 
+		(ttShipDtl.Company = Part.Company and 
+		ttShipDtl.PartNum = Part.PartNum ) and  
+		Part.CheckBox14 = TRUE and curplant = &amp;amp;#34;MfgSys&amp;amp;#34;</text></part><part><order>2</order><text>&amp;lt;/EditQueryConfig_x002B__queryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__realQueryText id="ref-5"&amp;gt;for each ttShipDtl no-lock  ,  
+	each Part no-lock  where 
+		(ttShipDtl.Company = Part.Company and 
+		ttShipDtl.PartNum = Part.PartNum ) and  
+		Part.CheckBox14 = TRUE and curplant = &amp;amp;#39;MfgSys&amp;amp;#39;&amp;lt;/EditQueryConfig_x002B__realQueryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryField id="ref-6"&amp;gt;ttShipDtl.BinNum&amp;lt;/EditQueryConfig_x002B__queryField&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryFieldType id="ref-7"&amp;gt;&amp;lt;/EditQueryConfig_x002B__queryFieldType&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryName id="ref-8"&amp;gt;FAI Part Test&amp;lt;/EditQueryConfig_x002B__queryName&amp;gt;
+&amp;lt;EditQueryConfig_x002B__validationError href="#ref-7"/&amp;gt;
+&amp;lt;/a1:QueryCondition_x002B_QueryConfig&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run {RESULT}_p_GetOrderRelInfo( input allowNewShipTo,input orderRelNum,input packLine, output {RESULT}).</text></part><part><block>1</block><order>2</order><text>
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_GetOrderRelInfo}).
+
+    def var query_result as handle no-undo.
+    def var buf as handle no-undo.
+    def var query_string as character no-undo.
+    def var required_rows as integer initial 1 no-undo.
+    def var actual_rows as integer initial 0 no-undo.
+
+    query_string = "for each ttShipDtl no-lock  ,   	each Part no-lock  where  		(ttShipDtl.Company = Part.Company and  		ttShipDtl.PartNum = Part.PartNum ) and   		Part.CheckBox14 = TRUE and curplant = 'MfgSys'".
+    query_string = replace (query_string, "%allowNewShipTo%", string((allowNewShipTo))).
+    query_string = replace (query_string, "%orderRelNum%", string((orderRelNum))).
+    query_string = replace (query_string, "%packLine%", string((packLine))).
+
+    run ExecuteFreeFormQuery (query_string, "=1", output dataset-handle query_result).
+    
+    assign buf = query_result:get-buffer-handle (1).
+    buf:find-first () no-error.
+
+    if not buf:a</text></part><part><block>1</block><order>3</order><text>vailable then 
+        actual_rows = 0.
+    else do:
+        def var query_iter as handle no-undo.
+        
+        create query query_iter.
+        query_iter:set-buffers (buf).
+        query_iter:query-prepare ("for each ":u + buf:table + " no-lock":u).
+        query_iter:query-open ().
+        query_iter:get-first ().
+        do while not query_iter:query-off-end:
+	        if buf:available then do:
+                actual_rows = actual_rows + 1.
+	            if actual_rows &gt; required_rows then 
+                    leave.
+	        end.
+	        query_iter:get-next ().
+        end.
+    end.
+    delete object query_result.
+    return (actual_rows &gt;= required_rows).
+end function.</text></part></sourceCode></condition></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>InfoMsgActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:InfoMsgConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;dispType&amp;gt;Individual&amp;lt;/dispType&amp;gt;
+&amp;lt;_structuredText href="#ref-4"/&amp;gt;
+&amp;lt;RaiseExceptionConfig2_x002B_batchOption&amp;gt;OnceForAllMatching&amp;lt;/RaiseExceptionConfig2_x002B_batchOption&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__validationError id="ref-5"&amp;gt;&amp;lt;/RaiseExceptionConfig_x002B__validationError&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__name id="ref-6"&amp;gt;</text></part><part><order>2</order><text>FAI Alert&amp;lt;/RaiseExceptionConfig_x002B__name&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__type&amp;gt;Info&amp;lt;/RaiseExceptionConfig_x002B__type&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__tableName href="#ref-5"/&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__fieldName href="#ref-5"/&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__rowId href="#ref-5"/&amp;gt;
+&amp;lt;/a1:InfoMsgConfig&amp;gt;
+&amp;lt;a2:StructuredMessage id="ref-4" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-7"/&amp;gt;
+&amp;lt;/a2:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-7" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-8"/&amp;gt;
+&amp;lt;_size&amp;gt;3&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;3&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-8" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-9" xsi:type="SOAP-ENC:string"&amp;gt;Please Note:  Part Number: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-10"/&amp;gt;
+&amp;lt;item id="ref-11" xsi:t</text></part><part><order>3</order><text>ype="SOAP-ENC:string"&amp;gt; requires FAI Paper work.  Please make sure it&amp;amp;#39;s in the box.                 &amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a2:StructuredMessage_x002B_UDawareFieldQuery id="ref-10" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-12"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-13"&amp;gt;PartNum&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-14"&amp;gt;ttShipDtl&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-15"&amp;gt;PN&amp;lt;/Name&amp;gt;
+&amp;lt;/a2:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttShipHead_Backup.
+run ttShipHeadAttch_Backup.
+run ttCartonTrkDtl_Backup.
+run ttShipDtl_Backup.
+run ttShipDtlAttch_Backup.
+run ttShipCOO_Backup.
+run ttShipDtlPackaging_Backup.
+run ttShipDtlTax_Backup.
+run ttShipMisc_Backup.
+run ttReplicatedPacks_Backup.
+run ttShipUPS_Backup.
+run ttLegalNumberGenerate_Backup.
+run ttSalesKitCompIssue_Backup.
+run ttSelectedSerialNumbers_Backup.
+run ttShipTaxSum_Backup.
+run ttSNFormat_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_GetOrderRelInfo}).
+
+run ttShipHead_Restore.
+run ttShipHead_copyFromMatch.
+run ttShipHeadAttch_Restore.
+run ttShipHeadAttch_copyFromMatch.
+run ttCartonTrkDtl_Restore.
+run ttCartonTrkDtl_copyFromMatch.
+run ttShipDtl_Restore.
+run ttShipDtl_copyFromMatch.
+run ttShipDtlAttch_Restore.
+run ttShipDtlAttch_copyFromMatch.
+run ttShipCOO_Restore.
+run ttShipCOO_copyFromMatch.
+run ttShipDtlPackaging_Restore.
+run ttShipDtlPackaging_copyFromMatch.
+run ttShipDtlTax_Restore.
+run ttShipDtlTax_copyFromMat</text></part><part><block>0</block><order>2</order><text>ch.
+run ttShipMisc_Restore.
+run ttShipMisc_copyFromMatch.
+run ttReplicatedPacks_Restore.
+run ttReplicatedPacks_copyFromMatch.
+run ttShipUPS_Restore.
+run ttShipUPS_copyFromMatch.
+run ttLegalNumberGenerate_Restore.
+run ttLegalNumberGenerate_copyFromMatch.
+run ttSalesKitCompIssue_Restore.
+run ttSalesKitCompIssue_copyFromMatch.
+run ttSelectedSerialNumbers_Restore.
+run ttSelectedSerialNumbers_copyFromMatch.
+run ttShipTaxSum_Restore.
+run ttShipTaxSum_copyFromMatch.
+run ttSNFormat_Restore.
+run ttSNFormat_copyFromMatch.</text></part><part><block>1</block><order>1</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_GetOrderRelInfo}
+
+define variable body as character no-undo.
+
+    define variable body_cnt as integer no-undo.
+    assign body = body + 'Please Note:  Part Number: '.
+
+    define buffer body_2_1 for ttShipDtl.
+   
+    assign body_cnt = 0.
+
+    for each ttShipDtl:
+
+        if not (
+            (ttShipDtl.RowMod = {&amp;RowState_Unchanged} and can-find (body_2_1
+                where body_2_1.RowIdent = ttShipDtl.RowIdent and
+                    body_2_1.RowMod = {&amp;RowState_Modified})) or  false) then do:
+define var fieldVal_1  as char no-undo.
+assign fieldVal_1 =  string (ttShipDtl.PartNum).
+
+            assign body = body + (if body_cnt &gt; 0 then ';' else '') + 
+                (if fieldVal_1 &lt;&gt; ? then fieldVal_1 else '').
+            assign body_cnt = body_cnt + 1.
+
+        end. /* if */
+
+    end. /* for each */
+
+    assign body = body + ' requires FAI Paper work.  Please make sure it~'s in the box.</text></part><part><block>1</block><order>2</order><text>                 '.
+
+{lib/PublishInfoMsg.i &amp;InfoMsg = body 
+        &amp;InfoSeverity   = {&amp;MESSAGE_INFO}
+        &amp;BOName         = "'CustShip'"
+        &amp;BOMethod   = "'GetOrderRelInfo'"
+        &amp;UserIdent   = DCD-USERID
+        &amp;Company   = CUR-COMP
+        &amp;Plant   = CUR-PLANT
+        &amp;DisplayMode   = {&amp;MESSAGE_DISP_ALONE}}
+end procedure.</text></part></sourceCode></action><action><order>2</order><typeName>SendMailActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SendMailActionConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;batchOption&amp;gt;OnceForAllMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;primTable id="ref-4"&amp;gt;ttShipHead&amp;lt;/primTable&amp;gt;
+&amp;lt;_async&amp;gt;true&amp;lt;/_async&amp;gt;
+&amp;lt;EmailConfig_x002B__validationError id="ref-5"&amp;gt;&amp;lt;/EmailConfig_x002B__validationError&amp;gt;
+&amp;lt;EmailConfig_x002B__name id="ref-6"&amp;gt;EPICOR&amp;lt;/EmailConfig_x002B__name&amp;gt;
+&amp;lt;EmailConfig_x002B__async</text></part><part><order>2</order><text>&amp;gt;true&amp;lt;/EmailConfig_x002B__async&amp;gt;
+&amp;lt;EmailConfig_x002B__emailFrom href="#ref-7"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailTo href="#ref-8"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailCC href="#ref-9"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailSubject href="#ref-10"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailBody href="#ref-11"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailMimeHeader href="#ref-5"/&amp;gt;
+&amp;lt;/a1:SendMailActionConfig&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-7" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-12"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-13"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-9" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#re</text></part><part><order>3</order><text>f-14"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-10" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-15"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-11" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-16"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-12" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-17"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-13" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-18"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-14" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Col</text></part><part><order>4</order><text>lections"&amp;gt;
+&amp;lt;_items href="#ref-19"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-15" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-20"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-16" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-21"/&amp;gt;
+&amp;lt;_size&amp;gt;9&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;9&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-17" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-22" xsi:type="SOAP-ENC:string"&amp;gt;Epicor@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-18" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-23" xsi:type="SOAP-ENC:string"&amp;gt;gfkowal@franklinproducts.net; anicol@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-E</text></part><part><order>5</order><text>NC:Array id="ref-19" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item href="#ref-5"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-20" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-24" xsi:type="SOAP-ENC:string"&amp;gt;FAI Paperwork&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-21" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item id="ref-25" xsi:type="SOAP-ENC:string"&amp;gt;FAI Paperwork needed for:
+PN:  &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-26"/&amp;gt;
+&amp;lt;item id="ref-27" xsi:type="SOAP-ENC:string"&amp;gt;
+Desc: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-28"/&amp;gt;
+&amp;lt;item id="ref-29" xsi:type="SOAP-ENC:string"&amp;gt;
+PS:  &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-30"/&amp;gt;
+&amp;lt;item id="ref-31" xsi:type="SOAP-ENC:string"&amp;gt;
+User: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-32"/&amp;gt;
+&amp;lt;item href="#ref-5"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-26" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/</text></part><part><order>6</order><text>Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-33"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-34"&amp;gt;PartNum&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-35"&amp;gt;ttShipDtl&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-36"&amp;gt;PN&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-28" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-37"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-38"&amp;gt;PartNumPartDescription&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-39"&amp;gt;ttShipDtl&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;Added, Modified&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-40"&amp;gt;Desc&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-30" xmlns:a3="http://schemas.microsoft.com/clr/n</text></part><part><order>7</order><text>sassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-41"&amp;gt;INTEGER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-42"&amp;gt;PackNum&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-43"&amp;gt;ttShipDtl&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-44"&amp;gt;PS&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-32" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-45"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-46"&amp;gt;CurrentUserId&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-47"&amp;gt;ttCallContextClient&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-48"&amp;gt;UserID&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttShipHead_Backup.
+run ttShipHeadAttch_Backup.
+run ttCartonTrkDtl_Backup.
+run ttShipDtl_Backup.
+run ttShipDtlAttch_Backup.
+run ttShipCOO_Backup.
+run ttShipDtlPackaging_Backup.
+run ttShipDtlTax_Backup.
+run ttShipMisc_Backup.
+run ttReplicatedPacks_Backup.
+run ttShipUPS_Backup.
+run ttLegalNumberGenerate_Backup.
+run ttSalesKitCompIssue_Backup.
+run ttSelectedSerialNumbers_Backup.
+run ttShipTaxSum_Backup.
+run ttSNFormat_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_GetOrderRelInfo}).
+
+run ttShipHead_Restore.
+run ttShipHead_copyFromMatch.
+run ttShipHeadAttch_Restore.
+run ttShipHeadAttch_copyFromMatch.
+run ttCartonTrkDtl_Restore.
+run ttCartonTrkDtl_copyFromMatch.
+run ttShipDtl_Restore.
+run ttShipDtl_copyFromMatch.
+run ttShipDtlAttch_Restore.
+run ttShipDtlAttch_copyFromMatch.
+run ttShipCOO_Restore.
+run ttShipCOO_copyFromMatch.
+run ttShipDtlPackaging_Restore.
+run ttShipDtlPackaging_copyFromMatch.
+run ttShipDtlTax_Restore.
+run ttShipDtlTax_copyFromMat</text></part><part><block>0</block><order>2</order><text>ch.
+run ttShipMisc_Restore.
+run ttShipMisc_copyFromMatch.
+run ttReplicatedPacks_Restore.
+run ttReplicatedPacks_copyFromMatch.
+run ttShipUPS_Restore.
+run ttShipUPS_copyFromMatch.
+run ttLegalNumberGenerate_Restore.
+run ttLegalNumberGenerate_copyFromMatch.
+run ttSalesKitCompIssue_Restore.
+run ttSalesKitCompIssue_copyFromMatch.
+run ttSelectedSerialNumbers_Restore.
+run ttSelectedSerialNumbers_copyFromMatch.
+run ttShipTaxSum_Restore.
+run ttShipTaxSum_copyFromMatch.
+run ttSNFormat_Restore.
+run ttSNFormat_copyFromMatch.</text></part><part><block>1</block><order>1</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_GetOrderRelInfo}
+
+
+    def var from_ as char no-undo init '':u.
+    def var to_ as char no-undo init '':u.
+    def var cc as char no-undo init '':u.
+    def var subject as char no-undo init '':u.
+    def var body as char no-undo init '':u.
+    def buffer ttShipDtlBuf for ttShipDtl.
+    def buffer ttCallContextClientBuf for ttCallContextClient.
+    def var keyfld as char extent {&amp;MAX_KEY} no-undo.
+    def var nkeyfld as integer no-undo.
+    def var keyval as char extent {&amp;MAX_KEY} no-undo.
+    def var hquery as handle no-undo.
+    def var hbuf as handle no-undo.
+    def var pos as integer no-undo.
+    def var hExecute as handle no-undo.
+
+    run Bpm/BpmEmail.p persistent set hExecute.
+
+        from_ = '':u.
+        to_ = '':u.
+        cc = '':u.
+        subject = '':u.
+        body = '':u.
+
+        assign from_ = from_ + 'Epicor@franklinproducts.net'.
+
+        assign to_ = to_ + 'gfkowal@franklinproducts.</text></part><part><block>1</block><order>2</order><text>net; anicol@franklinproducts.net'.
+
+        assign subject = subject + 'FAI Paperwork'.
+
+        assign body = body + 'FAI Paperwork needed for:~nPN:  '.
+
+        pos = 1.
+        for each ttShipDtl:
+            if ttShipDtl.RowMod = {&amp;RowState_Unchanged} and 
+                can-find (ttShipDtlBuf where ttShipDtlBuf.RowIdent = ttShipDtl.RowIdent and
+                    ttShipDtlBuf.RowMod = {&amp;RowState_Modified}) then next.
+define var fieldVal_body1 as character no-undo.
+assign fieldVal_body1 =  string (ttShipDtl.PartNum).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body1 &lt;&gt; ? then fieldVal_body1 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~nDesc: '.
+
+        pos = 1.
+        for each ttShipDtl:
+            if ttShipDtl.RowMod = {&amp;RowState_Deleted} then next.
+            if ttShipDtl.RowMod = {&amp;RowState_Unchanged} then next.
+define var fieldVal_body3 as character no-undo.
+assign fieldVal_body3 =</text></part><part><block>1</block><order>3</order><text>  string (ttShipDtl.PartNumPartDescription).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body3 &lt;&gt; ? then fieldVal_body3 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~nPS:  '.
+
+        pos = 1.
+        for each ttShipDtl:
+            if ttShipDtl.RowMod = {&amp;RowState_Unchanged} and 
+                can-find (ttShipDtlBuf where ttShipDtlBuf.RowIdent = ttShipDtl.RowIdent and
+                    ttShipDtlBuf.RowMod = {&amp;RowState_Modified}) then next.
+define var fieldVal_body5 as character no-undo.
+assign fieldVal_body5 =  string (ttShipDtl.PackNum).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body5 &lt;&gt; ? then fieldVal_body5 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~nUser: '.
+
+        pos = 1.
+        for each ttCallContextClient:
+define var fieldVal_body7 as character no-undo.
+assign fieldVal_body7 =  string (ttCallContextClient.Current</text></part><part><block>1</block><order>4</order><text>UserId).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body7 &lt;&gt; ? then fieldVal_body7 else '').
+            pos = pos + 1.
+        end.
+
+            run SendEmail in hExecute (true, CUR-COMP, from_, to_, cc, subject, body, "":U).
+
+
+    if valid-handle (hExecute) then 
+        delete procedure hExecute.
+end procedure.</text></part></sourceCode></action></actions></directive><directive><name>FAI Alert TX ReMove</name><order>20</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText>number of rows in the 'Plant' query is not less than 1</conditionText><actionText>send e-mail asynchronously based on the EPICOR template 
+and show informational message based on the Alert template</actionText><globalID>9ae409e7-0279-e08b-e211-cec731858ca8</globalID><isUpToDate>True</isUpToDate><scope>Null</scope><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode><condition><order>1</order><typeName>QueryConditionType</typeName><operator /><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.702.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:QueryCondition_x002B_QueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Conditions/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;comparison id="ref-3"&amp;gt;&amp;amp;#62;=&amp;lt;/comparison&amp;gt;
+&amp;lt;numRows&amp;gt;1&amp;lt;/numRows&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryText id="ref-4"&amp;gt;for each ttShipDtl no-lock  ,
+	each Part no-lock  where 
+		(ttShipDtl.Company = Part.Company and 
+		ttShipDtl.PartNum = Part.PartNum ) and  
+		Part.CheckBox14 = TRUE and curplant = &amp;amp;#34;05&amp;amp;#34;&amp;lt;/E</text></part><part><order>2</order><text>ditQueryConfig_x002B__queryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__realQueryText id="ref-5"&amp;gt;for each ttShipDtl no-lock  ,
+	each Part no-lock  where 
+		(ttShipDtl.Company = Part.Company and 
+		ttShipDtl.PartNum = Part.PartNum ) and  
+		Part.CheckBox14 = TRUE and curplant = &amp;amp;#39;05&amp;amp;#39;&amp;lt;/EditQueryConfig_x002B__realQueryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryField id="ref-6"&amp;gt;ttShipDtl.BinNum&amp;lt;/EditQueryConfig_x002B__queryField&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryFieldType id="ref-7"&amp;gt;&amp;lt;/EditQueryConfig_x002B__queryFieldType&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryName id="ref-8"&amp;gt;Plant&amp;lt;/EditQueryConfig_x002B__queryName&amp;gt;
+&amp;lt;EditQueryConfig_x002B__validationError href="#ref-7"/&amp;gt;
+&amp;lt;/a1:QueryCondition_x002B_QueryConfig&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run {RESULT}_p_GetOrderRelInfo( input allowNewShipTo,input orderRelNum,input packLine, output {RESULT}).</text></part><part><block>1</block><order>2</order><text>
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_GetOrderRelInfo}).
+
+    def var query_result as handle no-undo.
+    def var buf as handle no-undo.
+    def var query_string as character no-undo.
+    def var required_rows as integer initial 1 no-undo.
+    def var actual_rows as integer initial 0 no-undo.
+
+    query_string = "for each ttShipDtl no-lock  , 	each Part no-lock  where  		(ttShipDtl.Company = Part.Company and  		ttShipDtl.PartNum = Part.PartNum ) and   		Part.CheckBox14 = TRUE and curplant = '05'".
+    query_string = replace (query_string, "%allowNewShipTo%", string((allowNewShipTo))).
+    query_string = replace (query_string, "%orderRelNum%", string((orderRelNum))).
+    query_string = replace (query_string, "%packLine%", string((packLine))).
+
+    run ExecuteFreeFormQuery (query_string, "=1", output dataset-handle query_result).
+    
+    assign buf = query_result:get-buffer-handle (1).
+    buf:find-first () no-error.
+
+    if not buf:availab</text></part><part><block>1</block><order>3</order><text>le then 
+        actual_rows = 0.
+    else do:
+        def var query_iter as handle no-undo.
+        
+        create query query_iter.
+        query_iter:set-buffers (buf).
+        query_iter:query-prepare ("for each ":u + buf:table + " no-lock":u).
+        query_iter:query-open ().
+        query_iter:get-first ().
+        do while not query_iter:query-off-end:
+	        if buf:available then do:
+                actual_rows = actual_rows + 1.
+	            if actual_rows &gt; required_rows then 
+                    leave.
+	        end.
+	        query_iter:get-next ().
+        end.
+    end.
+    delete object query_result.
+    return (actual_rows &gt;= required_rows).
+end function.</text></part></sourceCode></condition></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>SendMailActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SendMailActionConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;batchOption&amp;gt;OnceForAllMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;primTable id="ref-4"&amp;gt;ttShipHead&amp;lt;/primTable&amp;gt;
+&amp;lt;_async&amp;gt;true&amp;lt;/_async&amp;gt;
+&amp;lt;EmailConfig_x002B__validationError id="ref-5"&amp;gt;&amp;lt;/EmailConfig_x002B__validationError&amp;gt;
+&amp;lt;EmailConfig_x002B__name id="ref-6"&amp;gt;EPICOR&amp;lt;/EmailConfig_x002B__name&amp;gt;
+&amp;lt;EmailConfig_x002B__async</text></part><part><order>2</order><text>&amp;gt;true&amp;lt;/EmailConfig_x002B__async&amp;gt;
+&amp;lt;EmailConfig_x002B__emailFrom href="#ref-7"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailTo href="#ref-8"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailCC href="#ref-9"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailSubject href="#ref-10"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailBody href="#ref-11"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailMimeHeader href="#ref-5"/&amp;gt;
+&amp;lt;/a1:SendMailActionConfig&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-7" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-12"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-13"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-9" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#re</text></part><part><order>3</order><text>f-14"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-10" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-15"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-11" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-16"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-12" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-17"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-13" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-18"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-14" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Col</text></part><part><order>4</order><text>lections"&amp;gt;
+&amp;lt;_items href="#ref-19"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-15" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-20"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-16" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-21"/&amp;gt;
+&amp;lt;_size&amp;gt;9&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;9&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-17" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-22" xsi:type="SOAP-ENC:string"&amp;gt;Epicor@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-18" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-23" xsi:type="SOAP-ENC:string"&amp;gt;tmatteson@franklinproducts.net;eagonzal@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOA</text></part><part><order>5</order><text>P-ENC:Array id="ref-19" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item href="#ref-5"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-20" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-24" xsi:type="SOAP-ENC:string"&amp;gt;FAI Paperwork&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-21" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item id="ref-25" xsi:type="SOAP-ENC:string"&amp;gt;FAI Paperwork needed for:
+PN: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-26"/&amp;gt;
+&amp;lt;item id="ref-27" xsi:type="SOAP-ENC:string"&amp;gt;
+Desc: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-28"/&amp;gt;
+&amp;lt;item id="ref-29" xsi:type="SOAP-ENC:string"&amp;gt;
+PS:  &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-30"/&amp;gt;
+&amp;lt;item id="ref-31" xsi:type="SOAP-ENC:string"&amp;gt;
+User: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-32"/&amp;gt;
+&amp;lt;item href="#ref-5"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-26" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneou</text></part><part><order>6</order><text>s/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-33"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-34"&amp;gt;PartNum&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-35"&amp;gt;ttShipDtl&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-36"&amp;gt;PN&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-28" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-37"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-38"&amp;gt;PartNumPartDescription&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-39"&amp;gt;ttShipDtl&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;Added, Modified&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-40"&amp;gt;desc&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-30" xmlns:a3="http://schemas.microsoft.com/clr</text></part><part><order>7</order><text>/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-41"&amp;gt;INTEGER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-42"&amp;gt;PackNum&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-43"&amp;gt;ttShipDtl&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-44"&amp;gt;PS&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-32" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType href="#ref-33"/&amp;gt;
+&amp;lt;Field id="ref-45"&amp;gt;CurrentUserId&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-46"&amp;gt;ttCallContextClient&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-47"&amp;gt;UserID&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttShipHead_Backup.
+run ttShipHeadAttch_Backup.
+run ttCartonTrkDtl_Backup.
+run ttShipDtl_Backup.
+run ttShipDtlAttch_Backup.
+run ttShipCOO_Backup.
+run ttShipDtlPackaging_Backup.
+run ttShipDtlTax_Backup.
+run ttShipMisc_Backup.
+run ttReplicatedPacks_Backup.
+run ttShipUPS_Backup.
+run ttLegalNumberGenerate_Backup.
+run ttSalesKitCompIssue_Backup.
+run ttSelectedSerialNumbers_Backup.
+run ttShipTaxSum_Backup.
+run ttSNFormat_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_GetOrderRelInfo}).
+
+run ttShipHead_Restore.
+run ttShipHead_copyFromMatch.
+run ttShipHeadAttch_Restore.
+run ttShipHeadAttch_copyFromMatch.
+run ttCartonTrkDtl_Restore.
+run ttCartonTrkDtl_copyFromMatch.
+run ttShipDtl_Restore.
+run ttShipDtl_copyFromMatch.
+run ttShipDtlAttch_Restore.
+run ttShipDtlAttch_copyFromMatch.
+run ttShipCOO_Restore.
+run ttShipCOO_copyFromMatch.
+run ttShipDtlPackaging_Restore.
+run ttShipDtlPackaging_copyFromMatch.
+run ttShipDtlTax_Restore.
+run ttShipDtlTax_copyFromMat</text></part><part><block>0</block><order>2</order><text>ch.
+run ttShipMisc_Restore.
+run ttShipMisc_copyFromMatch.
+run ttReplicatedPacks_Restore.
+run ttReplicatedPacks_copyFromMatch.
+run ttShipUPS_Restore.
+run ttShipUPS_copyFromMatch.
+run ttLegalNumberGenerate_Restore.
+run ttLegalNumberGenerate_copyFromMatch.
+run ttSalesKitCompIssue_Restore.
+run ttSalesKitCompIssue_copyFromMatch.
+run ttSelectedSerialNumbers_Restore.
+run ttSelectedSerialNumbers_copyFromMatch.
+run ttShipTaxSum_Restore.
+run ttShipTaxSum_copyFromMatch.
+run ttSNFormat_Restore.
+run ttSNFormat_copyFromMatch.</text></part><part><block>1</block><order>1</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_GetOrderRelInfo}
+
+
+    def var from_ as char no-undo init '':u.
+    def var to_ as char no-undo init '':u.
+    def var cc as char no-undo init '':u.
+    def var subject as char no-undo init '':u.
+    def var body as char no-undo init '':u.
+    def buffer ttShipDtlBuf for ttShipDtl.
+    def buffer ttCallContextClientBuf for ttCallContextClient.
+    def var keyfld as char extent {&amp;MAX_KEY} no-undo.
+    def var nkeyfld as integer no-undo.
+    def var keyval as char extent {&amp;MAX_KEY} no-undo.
+    def var hquery as handle no-undo.
+    def var hbuf as handle no-undo.
+    def var pos as integer no-undo.
+    def var hExecute as handle no-undo.
+
+    run Bpm/BpmEmail.p persistent set hExecute.
+
+        from_ = '':u.
+        to_ = '':u.
+        cc = '':u.
+        subject = '':u.
+        body = '':u.
+
+        assign from_ = from_ + 'Epicor@franklinproducts.net'.
+
+        assign to_ = to_ + 'tmatteson@franklinproduct</text></part><part><block>1</block><order>2</order><text>s.net;eagonzal@franklinproducts.net'.
+
+        assign subject = subject + 'FAI Paperwork'.
+
+        assign body = body + 'FAI Paperwork needed for:~nPN: '.
+
+        pos = 1.
+        for each ttShipDtl:
+            if ttShipDtl.RowMod = {&amp;RowState_Unchanged} and 
+                can-find (ttShipDtlBuf where ttShipDtlBuf.RowIdent = ttShipDtl.RowIdent and
+                    ttShipDtlBuf.RowMod = {&amp;RowState_Modified}) then next.
+define var fieldVal_body1 as character no-undo.
+assign fieldVal_body1 =  string (ttShipDtl.PartNum).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body1 &lt;&gt; ? then fieldVal_body1 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~nDesc: '.
+
+        pos = 1.
+        for each ttShipDtl:
+            if ttShipDtl.RowMod = {&amp;RowState_Deleted} then next.
+            if ttShipDtl.RowMod = {&amp;RowState_Unchanged} then next.
+define var fieldVal_body3 as character no-undo.
+assign fieldVal_body3</text></part><part><block>1</block><order>3</order><text> =  string (ttShipDtl.PartNumPartDescription).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body3 &lt;&gt; ? then fieldVal_body3 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~nPS:  '.
+
+        pos = 1.
+        for each ttShipDtl:
+            if ttShipDtl.RowMod = {&amp;RowState_Unchanged} and 
+                can-find (ttShipDtlBuf where ttShipDtlBuf.RowIdent = ttShipDtl.RowIdent and
+                    ttShipDtlBuf.RowMod = {&amp;RowState_Modified}) then next.
+define var fieldVal_body5 as character no-undo.
+assign fieldVal_body5 =  string (ttShipDtl.PackNum).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body5 &lt;&gt; ? then fieldVal_body5 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~nUser: '.
+
+        pos = 1.
+        for each ttCallContextClient:
+define var fieldVal_body7 as character no-undo.
+assign fieldVal_body7 =  string (ttCallContextClient.Curre</text></part><part><block>1</block><order>4</order><text>ntUserId).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body7 &lt;&gt; ? then fieldVal_body7 else '').
+            pos = pos + 1.
+        end.
+
+            run SendEmail in hExecute (true, CUR-COMP, from_, to_, cc, subject, body, "":U).
+
+
+    if valid-handle (hExecute) then 
+        delete procedure hExecute.
+end procedure.</text></part></sourceCode></action><action><order>2</order><typeName>InfoMsgActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:InfoMsgConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;dispType&amp;gt;Individual&amp;lt;/dispType&amp;gt;
+&amp;lt;_structuredText href="#ref-4"/&amp;gt;
+&amp;lt;RaiseExceptionConfig2_x002B_batchOption&amp;gt;OnceForAllMatching&amp;lt;/RaiseExceptionConfig2_x002B_batchOption&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__validationError id="ref-5"&amp;gt;&amp;lt;/RaiseExceptionConfig_x002B__validationError&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__name id="ref-6"&amp;gt;</text></part><part><order>2</order><text>Alert&amp;lt;/RaiseExceptionConfig_x002B__name&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__type&amp;gt;Info&amp;lt;/RaiseExceptionConfig_x002B__type&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__tableName href="#ref-5"/&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__fieldName href="#ref-5"/&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__rowId href="#ref-5"/&amp;gt;
+&amp;lt;/a1:InfoMsgConfig&amp;gt;
+&amp;lt;a2:StructuredMessage id="ref-4" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-7"/&amp;gt;
+&amp;lt;/a2:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-7" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-8"/&amp;gt;
+&amp;lt;_size&amp;gt;3&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;3&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-8" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-9" xsi:type="SOAP-ENC:string"&amp;gt;Please Note:  Part Number: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-10"/&amp;gt;
+&amp;lt;item id="ref-11" xsi:type=</text></part><part><order>3</order><text>"SOAP-ENC:string"&amp;gt; requires FAI Paper work.  Please make sure it&amp;amp;#39;s in the box.                 &amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a2:StructuredMessage_x002B_UDawareFieldQuery id="ref-10" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-12"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-13"&amp;gt;PartNum&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-14"&amp;gt;ttShipDtl&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-15"&amp;gt;PN&amp;lt;/Name&amp;gt;
+&amp;lt;/a2:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttShipHead_Backup.
+run ttShipHeadAttch_Backup.
+run ttCartonTrkDtl_Backup.
+run ttShipDtl_Backup.
+run ttShipDtlAttch_Backup.
+run ttShipCOO_Backup.
+run ttShipDtlPackaging_Backup.
+run ttShipDtlTax_Backup.
+run ttShipMisc_Backup.
+run ttReplicatedPacks_Backup.
+run ttShipUPS_Backup.
+run ttLegalNumberGenerate_Backup.
+run ttSalesKitCompIssue_Backup.
+run ttSelectedSerialNumbers_Backup.
+run ttShipTaxSum_Backup.
+run ttSNFormat_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_GetOrderRelInfo}).
+
+run ttShipHead_Restore.
+run ttShipHead_copyFromMatch.
+run ttShipHeadAttch_Restore.
+run ttShipHeadAttch_copyFromMatch.
+run ttCartonTrkDtl_Restore.
+run ttCartonTrkDtl_copyFromMatch.
+run ttShipDtl_Restore.
+run ttShipDtl_copyFromMatch.
+run ttShipDtlAttch_Restore.
+run ttShipDtlAttch_copyFromMatch.
+run ttShipCOO_Restore.
+run ttShipCOO_copyFromMatch.
+run ttShipDtlPackaging_Restore.
+run ttShipDtlPackaging_copyFromMatch.
+run ttShipDtlTax_Restore.
+run ttShipDtlTax_copyFromMat</text></part><part><block>0</block><order>2</order><text>ch.
+run ttShipMisc_Restore.
+run ttShipMisc_copyFromMatch.
+run ttReplicatedPacks_Restore.
+run ttReplicatedPacks_copyFromMatch.
+run ttShipUPS_Restore.
+run ttShipUPS_copyFromMatch.
+run ttLegalNumberGenerate_Restore.
+run ttLegalNumberGenerate_copyFromMatch.
+run ttSalesKitCompIssue_Restore.
+run ttSalesKitCompIssue_copyFromMatch.
+run ttSelectedSerialNumbers_Restore.
+run ttSelectedSerialNumbers_copyFromMatch.
+run ttShipTaxSum_Restore.
+run ttShipTaxSum_copyFromMatch.
+run ttSNFormat_Restore.
+run ttSNFormat_copyFromMatch.</text></part><part><block>1</block><order>1</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_GetOrderRelInfo}
+
+define variable body as character no-undo.
+
+    define variable body_cnt as integer no-undo.
+    assign body = body + 'Please Note:  Part Number: '.
+
+    define buffer body_2_1 for ttShipDtl.
+   
+    assign body_cnt = 0.
+
+    for each ttShipDtl:
+
+        if not (
+            (ttShipDtl.RowMod = {&amp;RowState_Unchanged} and can-find (body_2_1
+                where body_2_1.RowIdent = ttShipDtl.RowIdent and
+                    body_2_1.RowMod = {&amp;RowState_Modified})) or  false) then do:
+define var fieldVal_1  as char no-undo.
+assign fieldVal_1 =  string (ttShipDtl.PartNum).
+
+            assign body = body + (if body_cnt &gt; 0 then ';' else '') + 
+                (if fieldVal_1 &lt;&gt; ? then fieldVal_1 else '').
+            assign body_cnt = body_cnt + 1.
+
+        end. /* if */
+
+    end. /* for each */
+
+    assign body = body + ' requires FAI Paper work.  Please make sure it~'s in the box.</text></part><part><block>1</block><order>2</order><text>                 '.
+
+{lib/PublishInfoMsg.i &amp;InfoMsg = body 
+        &amp;InfoSeverity   = {&amp;MESSAGE_INFO}
+        &amp;BOName         = "'CustShip'"
+        &amp;BOMethod   = "'GetOrderRelInfo'"
+        &amp;UserIdent   = DCD-USERID
+        &amp;Company   = CUR-COMP
+        &amp;Plant   = CUR-PLANT
+        &amp;DisplayMode   = {&amp;MESSAGE_DISP_ALONE}}
+end procedure.</text></part></sourceCode></action></actions></directive><directive><name>FAI Comment ReMove</name><order>30</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText>number of rows in the 'FAI TRAP' query is not less than 1</conditionText><actionText>set the ShipDtl.ShipComment field of the changed row to the "FAI REQUIRED" + "  ... expression</actionText><globalID>810fe8f7-6430-24b9-e311-4a46ed9a38f0</globalID><isUpToDate>True</isUpToDate><scope>Null</scope><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode><condition><order>1</order><typeName>QueryConditionType</typeName><operator /><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.702.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:QueryCondition_x002B_QueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Conditions/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;comparison id="ref-3"&amp;gt;&amp;amp;#62;=&amp;lt;/comparison&amp;gt;
+&amp;lt;numRows&amp;gt;1&amp;lt;/numRows&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryText id="ref-4"&amp;gt;for each ttShipDtl no-lock  ,  
+	each Part no-lock  where 
+		(ttShipDtl.Company = Part.Company and 
+		ttShipDtl.PartNum = Part.PartNum ) and  
+		Part.CheckBox14 = TRUE&amp;lt;/EditQueryConfig_x002B__queryText&amp;gt</text></part><part><order>2</order><text>;
+&amp;lt;EditQueryConfig_x002B__realQueryText id="ref-5"&amp;gt;for each ttShipDtl no-lock  ,  
+	each Part no-lock  where 
+		(ttShipDtl.Company = Part.Company and 
+		ttShipDtl.PartNum = Part.PartNum ) and  
+		Part.CheckBox14 = TRUE&amp;lt;/EditQueryConfig_x002B__realQueryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryField id="ref-6"&amp;gt;ttShipDtl.BinNum&amp;lt;/EditQueryConfig_x002B__queryField&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryFieldType id="ref-7"&amp;gt;&amp;lt;/EditQueryConfig_x002B__queryFieldType&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryName id="ref-8"&amp;gt;FAI TRAP&amp;lt;/EditQueryConfig_x002B__queryName&amp;gt;
+&amp;lt;EditQueryConfig_x002B__validationError href="#ref-7"/&amp;gt;
+&amp;lt;/a1:QueryCondition_x002B_QueryConfig&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run {RESULT}_p_GetOrderRelInfo( input allowNewShipTo,input orderRelNum,input packLine, output {RESULT}).</text></part><part><block>1</block><order>2</order><text>
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_GetOrderRelInfo}).
+
+    def var query_result as handle no-undo.
+    def var buf as handle no-undo.
+    def var query_string as character no-undo.
+    def var required_rows as integer initial 1 no-undo.
+    def var actual_rows as integer initial 0 no-undo.
+
+    query_string = "for each ttShipDtl no-lock  ,   	each Part no-lock  where  		(ttShipDtl.Company = Part.Company and  		ttShipDtl.PartNum = Part.PartNum ) and   		Part.CheckBox14 = TRUE".
+    query_string = replace (query_string, "%allowNewShipTo%", string((allowNewShipTo))).
+    query_string = replace (query_string, "%orderRelNum%", string((orderRelNum))).
+    query_string = replace (query_string, "%packLine%", string((packLine))).
+
+    run ExecuteFreeFormQuery (query_string, "=1", output dataset-handle query_result).
+    
+    assign buf = query_result:get-buffer-handle (1).
+    buf:find-first () no-error.
+
+    if not buf:available then</text></part><part><block>1</block><order>3</order><text> 
+        actual_rows = 0.
+    else do:
+        def var query_iter as handle no-undo.
+        
+        create query query_iter.
+        query_iter:set-buffers (buf).
+        query_iter:query-prepare ("for each ":u + buf:table + " no-lock":u).
+        query_iter:query-open ().
+        query_iter:get-first ().
+        do while not query_iter:query-off-end:
+	        if buf:available then do:
+                actual_rows = actual_rows + 1.
+	            if actual_rows &gt; required_rows then 
+                    leave.
+	        end.
+	        query_iter:get-next ().
+        end.
+    end.
+    delete object query_result.
+    return (actual_rows &gt;= required_rows).
+end function.</text></part></sourceCode></condition></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>SimpleRowUpdateActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.702.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SimpleFieldConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;rowSet id="ref-4"&amp;gt;AU&amp;lt;/rowSet&amp;gt;
+&amp;lt;valueText id="ref-5"&amp;gt;&amp;amp;#34;FAI REQUIRED&amp;amp;#34; + &amp;amp;#34;  &amp;amp;#34; + ttShipDtl.ShipComment&amp;lt;/valueText&amp;gt;
+&amp;lt;valuePreparedText href="#ref-5"/&amp;gt;
+&amp;lt;batchOption&amp;gt;ForEachMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__validationError id="ref-6"&amp;gt;&amp;lt;/SimpleQueryConfig_x002B__validationError&amp;gt;
+&amp;</text></part><part><order>2</order><text>lt;SimpleQueryConfig_x002B__requireName&amp;gt;false&amp;lt;/SimpleQueryConfig_x002B__requireName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__canEditName&amp;gt;false&amp;lt;/SimpleQueryConfig_x002B__canEditName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__requireColumnsCardinality&amp;gt;Single&amp;lt;/SimpleQueryConfig_x002B__requireColumnsCardinality&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__canChangeFilter&amp;gt;false&amp;lt;/SimpleQueryConfig_x002B__canChangeFilter&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__name href="#ref-6"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__columnType href="#ref-6"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__fromVal xsi:null="1"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__toVal xsi:null="1"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__tableName id="ref-7"&amp;gt;ttShipDtl&amp;lt;/SimpleQueryConfig_x002B__tableName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__filter&amp;gt;All&amp;lt;/SimpleQueryConfig_x002B__filter&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__columns href="#ref-8"/&amp;gt;
+&amp;lt;/a1:SimpleFieldConfig&amp;gt;
+&amp;lt;a5:Columns id="ref-8" xmlns:a5="http://schemas.microsoft.com/clr/nsasse</text></part><part><order>3</order><text>m/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_columns href="#ref-9"/&amp;gt;
+&amp;lt;/a5:Columns&amp;gt;
+&amp;lt;a6:SortedList id="ref-9" xmlns:a6="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;keys href="#ref-10"/&amp;gt;
+&amp;lt;values href="#ref-11"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;version&amp;gt;1&amp;lt;/version&amp;gt;
+&amp;lt;comparer href="#ref-12"/&amp;gt;
+&amp;lt;keyList xsi:null="1"/&amp;gt;
+&amp;lt;valueList xsi:null="1"/&amp;gt;
+&amp;lt;/a6:SortedList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-10" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item xsi:type="xsd:int"&amp;gt;0&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-11" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item href="#ref-13"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a6:CaseInsensitiveComparer id="ref-12" xmlns:a6="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;m_compareInfo href="#ref-14"/&amp;gt;
+&amp;lt;/a6:CaseInsensitiveComparer&amp;gt;
+&amp;lt;a5:TableSchema_x002B_Column id="ref-13" xmlns:a5="http://schema</text></part><part><order>4</order><text>s.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_tableName href="#ref-7"/&amp;gt;
+&amp;lt;_columnName id="ref-15"&amp;gt;ShipComment&amp;lt;/_columnName&amp;gt;
+&amp;lt;_dataType id="ref-16"&amp;gt;CHARACTER&amp;lt;/_dataType&amp;gt;
+&amp;lt;_isUDField&amp;gt;false&amp;lt;/_isUDField&amp;gt;
+&amp;lt;/a5:TableSchema_x002B_Column&amp;gt;
+&amp;lt;a7:CompareInfo id="ref-14" xmlns:a7="http://schemas.microsoft.com/clr/ns/System.Globalization"&amp;gt;
+&amp;lt;win32LCID&amp;gt;1033&amp;lt;/win32LCID&amp;gt;
+&amp;lt;culture&amp;gt;1033&amp;lt;/culture&amp;gt;
+&amp;lt;m_name id="ref-17"&amp;gt;en-US&amp;lt;/m_name&amp;gt;
+&amp;lt;/a7:CompareInfo&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttShipHead_Backup.
+run ttShipHeadAttch_Backup.
+run ttCartonTrkDtl_Backup.
+run ttShipDtl_Backup.
+run ttShipDtlAttch_Backup.
+run ttShipCOO_Backup.
+run ttShipDtlPackaging_Backup.
+run ttShipDtlTax_Backup.
+run ttShipMisc_Backup.
+run ttReplicatedPacks_Backup.
+run ttShipUPS_Backup.
+run ttLegalNumberGenerate_Backup.
+run ttSalesKitCompIssue_Backup.
+run ttSelectedSerialNumbers_Backup.
+run ttShipTaxSum_Backup.
+run ttSNFormat_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_GetOrderRelInfo}).
+run ttShipHead_Restore.
+run ttShipHead_copyFromMatch.
+run ttShipHeadAttch_Restore.
+run ttShipHeadAttch_copyFromMatch.
+run ttCartonTrkDtl_Restore.
+run ttCartonTrkDtl_copyFromMatch.
+run ttShipDtl_Restore.
+run ttShipDtl_copyFromMatch.
+run ttShipDtlAttch_Restore.
+run ttShipDtlAttch_copyFromMatch.
+run ttShipCOO_Restore.
+run ttShipCOO_copyFromMatch.
+run ttShipDtlPackaging_Restore.
+run ttShipDtlPackaging_copyFromMatch.
+run ttShipDtlTax_Restore.
+run ttShipDtlTax_copyFromMatch</text></part><part><block>0</block><order>2</order><text>.
+run ttShipMisc_Restore.
+run ttShipMisc_copyFromMatch.
+run ttReplicatedPacks_Restore.
+run ttReplicatedPacks_copyFromMatch.
+run ttShipUPS_Restore.
+run ttShipUPS_copyFromMatch.
+run ttLegalNumberGenerate_Restore.
+run ttLegalNumberGenerate_copyFromMatch.
+run ttSalesKitCompIssue_Restore.
+run ttSalesKitCompIssue_copyFromMatch.
+run ttSelectedSerialNumbers_Restore.
+run ttSelectedSerialNumbers_copyFromMatch.
+run ttShipTaxSum_Restore.
+run ttShipTaxSum_copyFromMatch.
+run ttSNFormat_Restore.
+run ttSNFormat_copyFromMatch.</text></part><part><block>1</block><order>3</order><text>
+
+procedure {RESULT}_execute:
+{&amp;TRY_PRIVATE}
+
+    {&amp;DECL_INPUT-OUTPUT_P_GetOrderRelInfo}
+
+    for each ttShipDtl where ttShipDtl.RowMod = 'A' or ttShipDtl.RowMod = 'U':
+     assign ttShipDtl.ShipComment = ("FAI REQUIRED" + "  " + ttShipDtl.ShipComment). 
+
+end.
+
+
+{&amp;CATCH_PRIVATE}
+end procedure.</text></part></sourceCode></action></actions></directive></preProcDirectives><baseProcDirectives /><postProcDirectives /></method><method><code>JobEntry.CheckPrePartInfo</code><businessObject>JobEntry</businessObject><name>CheckPrePartInfo</name><preProcDirectives><directive><name>ReMove</name><order>10</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText /><actionText>synchronously execute ABL {lib\publishinfomsg.i &amp;infomsg = "'TRAP1 ... record nothing</actionText><globalID>f846e95c-bb96-3ba8-e511-4773e74bc9bd</globalID><isUpToDate>True</isUpToDate><scope /><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>FourGlActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.702.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;FourGlActionCfg3&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:FourGlActionConfig2 id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;ProgramActionConfig2_x0060_1_x002B_core href="#ref-4"/&amp;gt;
+&amp;lt;/a1:FourGlActionConfig2&amp;gt;
+&amp;lt;a2:FourGlActionCfg3 id="ref-4" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Declarations id="ref-5"&amp;gt;&amp;lt;/Declarations&amp;gt;
+&amp;lt;IsForward&amp;gt;false&amp;lt;/IsForward&amp;gt;
+&amp;lt;Procedure id="ref</text></part><part><order>2</order><text>-6"&amp;gt;{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP1 &amp;amp;#39;&amp;amp;#34;}
+
+for each ttjobhead where 
+	ttjobhead.Company = cur-comp and
+	(ttjobhead.RowMod = {&amp;amp;#38;RowState_Added} or
+	ttjobhead.RowMod = {&amp;amp;#38;RowState_Modified}) no-lock:
+	{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP2 &amp;amp;#39;&amp;amp;#34;}
+
+	find first partplant where
+		partplant.Company = ttjobhead.Company and
+		Partplant.PartNum = ttjobhead.partnum and
+		partplant.Plant = ttjobhead.Plant no-lock no-error.
+
+				{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;PartPlant &amp;amp;#39;+ partplant.plant&amp;amp;#34;}
+				{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;PartPlant &amp;amp;#39;+ ttJobHead.plant&amp;amp;#34;}
+				{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP3 &amp;amp;#39;&amp;amp;#34;}
+	
+		if not available partplant then do:
+			
+			{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;Trap4&amp;amp;#39;&amp;amp;#34; } 
+			
+		end.
+
+		if Available partplant</text></part><part><order>3</order><text> then do:
+			{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP5 &amp;amp;#39;&amp;amp;#34;}
+
+			ttJobHead.ShortChar01 = partplant.Character05.
+			partplant.Character04 = ttjobhead.JobNum.
+
+			{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;FAI REV &amp;amp;#39; + ttJobHead.JobNum&amp;amp;#34;}
+
+			{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;FAI REV &amp;amp;#39; + partplant.Character05&amp;amp;#34;}
+
+		end.
+
+		{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP6 &amp;amp;#39;&amp;amp;#34;}
+
+end.&amp;lt;/Procedure&amp;gt;
+&amp;lt;SourceProc href="#ref-7"/&amp;gt;
+&amp;lt;AsyncMode&amp;gt;BPM_ASYNC_NONE&amp;lt;/AsyncMode&amp;gt;
+&amp;lt;DoRecordCall&amp;gt;false&amp;lt;/DoRecordCall&amp;gt;
+&amp;lt;DoRecordReturn&amp;gt;false&amp;lt;/DoRecordReturn&amp;gt;
+&amp;lt;batchOption&amp;gt;OnceForAllMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;primaryTable href="#ref-5"/&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:FourGlActionCfg3&amp;gt;
+&amp;lt;a2:MethodInfoCfg2 id="ref-7" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.B</text></part><part><order>4</order><text>pm.CodeGen"&amp;gt;
+&amp;lt;BoSource id="ref-8"&amp;gt;BO&amp;lt;/BoSource&amp;gt;
+&amp;lt;ObjName id="ref-9"&amp;gt;JobEntry&amp;lt;/ObjName&amp;gt;
+&amp;lt;Parameters href="#ref-10"/&amp;gt;
+&amp;lt;Location id="ref-11"&amp;gt;\CheckPrePartInfo.p&amp;lt;/Location&amp;gt;
+&amp;lt;Version id="ref-12"&amp;gt;Bpm.CodeGen.Config.MethodInfoCfg2&amp;lt;/Version&amp;gt;
+&amp;lt;/a2:MethodInfoCfg2&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-10" SOAP-ENC:arrayType="a2:ParamCfg[10]" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;item href="#ref-13"/&amp;gt;
+&amp;lt;item href="#ref-14"/&amp;gt;
+&amp;lt;item href="#ref-15"/&amp;gt;
+&amp;lt;item href="#ref-16"/&amp;gt;
+&amp;lt;item href="#ref-17"/&amp;gt;
+&amp;lt;item href="#ref-18"/&amp;gt;
+&amp;lt;item href="#ref-19"/&amp;gt;
+&amp;lt;item href="#ref-20"/&amp;gt;
+&amp;lt;item href="#ref-21"/&amp;gt;
+&amp;lt;item href="#ref-22"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-13" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-23"&amp;gt;INPUT-OUTPUT&amp;lt;/Directio</text></part><part><order>5</order><text>n&amp;gt;
+&amp;lt;Name id="ref-24"&amp;gt;JobEntryDataSet&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-25"&amp;gt;DATASET$24&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-14" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-26"&amp;gt;INPUT-OUTPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-27"&amp;gt;partNum&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-28"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-15" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-29"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-30"&amp;gt;sysRowID&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-31"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-16" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-32"&amp;gt;INPUT&amp;lt;/Direc</text></part><part><order>6</order><text>tion&amp;gt;
+&amp;lt;Name id="ref-33"&amp;gt;skipXRefUpdate&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-34"&amp;gt;LOGICAL&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-17" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-35"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-36"&amp;gt;xrefPartNum&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-37"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-18" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-38"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-39"&amp;gt;xrefPartType&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-40"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-19" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-41"&amp;gt;OUTPUT&amp;lt;/Dire</text></part><part><order>7</order><text>ction&amp;gt;
+&amp;lt;Name id="ref-42"&amp;gt;vMsgText&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-43"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-20" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-44"&amp;gt;OUTPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-45"&amp;gt;vSubAvail&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-46"&amp;gt;LOGICAL&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-21" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-47"&amp;gt;OUTPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-48"&amp;gt;vMsgType&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-49"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-22" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-50"&amp;gt;OUTPUT&amp;lt;/Direction&amp;gt;</text></part><part><order>8</order><text>
+&amp;lt;Name id="ref-51"&amp;gt;multipleMatch&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-52"&amp;gt;LOGICAL&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttJobHead_Backup.
+run ttJobHeadAttch_Backup.
+run ttJobAsmbl_Backup.
+run ttJobAsmblAttch_Backup.
+run ttJobAsmblInsp_Backup.
+run ttJobMtl_Backup.
+run ttJobMtlAttch_Backup.
+run ttJobMtlInsp_Backup.
+run ttJobMtlRefDes_Backup.
+run ttJobMtlRestriction_Backup.
+run ttJobMtlRestrictSubst_Backup.
+run ttJobOper_Backup.
+run ttJobOperAttch_Backup.
+run ttJobOperInsp_Backup.
+run ttJobOpDtl_Backup.
+run ttJobResources_Backup.
+run ttJobOperRestriction_Backup.
+run ttJobOperRestrictSubst_Backup.
+run ttJobAsmblRestriction_Backup.
+run ttJobAsmblRestrictSubst_Backup.
+run ttJobAsmRefDes_Backup.
+run ttJobAudit_Backup.
+run ttJobPart_Backup.
+run ttJobProd_Backup.
+					
+run CheckPrePartInfo{RESULT} (INPUT-OUTPUT dataset JobEntryDataSetM, INPUT-OUTPUT partNum, INPUT-OUTPUT sysRowID, INPUT-OUTPUT skipXRefUpdate, INPUT-OUTPUT xrefPartNum, INPUT-OUTPUT xrefPartType, INPUT-OUTPUT vMsgText, INPUT-OUTPUT vSubAvail, INPUT-OUTPUT vMsgType, INPUT-OUTPUT multipleMatch).
+run ttJobHead_Restore.</text></part><part><block>0</block><order>2</order><text>
+run ttJobHead_copyFromMatch.
+run ttJobHeadAttch_Restore.
+run ttJobHeadAttch_copyFromMatch.
+run ttJobAsmbl_Restore.
+run ttJobAsmbl_copyFromMatch.
+run ttJobAsmblAttch_Restore.
+run ttJobAsmblAttch_copyFromMatch.
+run ttJobAsmblInsp_Restore.
+run ttJobAsmblInsp_copyFromMatch.
+run ttJobMtl_Restore.
+run ttJobMtl_copyFromMatch.
+run ttJobMtlAttch_Restore.
+run ttJobMtlAttch_copyFromMatch.
+run ttJobMtlInsp_Restore.
+run ttJobMtlInsp_copyFromMatch.
+run ttJobMtlRefDes_Restore.
+run ttJobMtlRefDes_copyFromMatch.
+run ttJobMtlRestriction_Restore.
+run ttJobMtlRestriction_copyFromMatch.
+run ttJobMtlRestrictSubst_Restore.
+run ttJobMtlRestrictSubst_copyFromMatch.
+run ttJobOper_Restore.
+run ttJobOper_copyFromMatch.
+run ttJobOperAttch_Restore.
+run ttJobOperAttch_copyFromMatch.
+run ttJobOperInsp_Restore.
+run ttJobOperInsp_copyFromMatch.
+run ttJobOpDtl_Restore.
+run ttJobOpDtl_copyFromMatch.
+run ttJobResources_Restore.
+run ttJobResources_copyFromMatch.
+run ttJobOperRestriction_R</text></part><part><block>0</block><order>3</order><text>estore.
+run ttJobOperRestriction_copyFromMatch.
+run ttJobOperRestrictSubst_Restore.
+run ttJobOperRestrictSubst_copyFromMatch.
+run ttJobAsmblRestriction_Restore.
+run ttJobAsmblRestriction_copyFromMatch.
+run ttJobAsmblRestrictSubst_Restore.
+run ttJobAsmblRestrictSubst_copyFromMatch.
+run ttJobAsmRefDes_Restore.
+run ttJobAsmRefDes_copyFromMatch.
+run ttJobAudit_Restore.
+run ttJobAudit_copyFromMatch.
+run ttJobPart_Restore.
+run ttJobPart_copyFromMatch.
+run ttJobProd_Restore.
+run ttJobProd_copyFromMatch.</text></part><part><block>1</block><order>4</order><text>
+/* AblActionGen {
+*/
+
+procedure CheckPrePartInfo{RESULT}:
+	define input-output parameter dataset for JobEntryDataSet.
+	define input-output parameter partNum as character.
+	define input-output parameter sysRowID as character.
+	define input-output parameter skipXRefUpdate as logical.
+	define input-output parameter xrefPartNum as character.
+	define input-output parameter xrefPartType as character.
+	define input-output parameter vMsgText as character.
+	define input-output parameter vSubAvail as logical.
+	define input-output parameter vMsgType as character.
+	define input-output parameter multipleMatch as logical.
+{&amp;TRY_PRIVATE}
+
+
+/* ProcedureGen {
+*/
+{lib\publishinfomsg.i &amp;infomsg = "'TRAP1 '"}
+
+for each ttjobhead where 
+	ttjobhead.Company = cur-comp and
+	(ttjobhead.RowMod = {&amp;RowState_Added} or
+	ttjobhead.RowMod = {&amp;RowState_Modified}) no-lock:
+	{lib\publishinfomsg.i &amp;infomsg = "'TRAP2 '"}
+
+	find first partplant where
+		partplant.Company = ttjobhead.Company and
+		Par</text></part><part><block>1</block><order>5</order><text>tplant.PartNum = ttjobhead.partnum and
+		partplant.Plant = ttjobhead.Plant no-lock no-error.
+
+				{lib\publishinfomsg.i &amp;infomsg = "'PartPlant '+ partplant.plant"}
+				{lib\publishinfomsg.i &amp;infomsg = "'PartPlant '+ ttJobHead.plant"}
+				{lib\publishinfomsg.i &amp;infomsg = "'TRAP3 '"}
+	
+		if not available partplant then do:
+			
+			{lib\publishinfomsg.i &amp;infomsg = "'Trap4'" } 
+			
+		end.
+
+		if Available partplant then do:
+			{lib\publishinfomsg.i &amp;infomsg = "'TRAP5 '"}
+
+			ttJobHead.ShortChar01 = partplant.Character05.
+			partplant.Character04 = ttjobhead.JobNum.
+
+			{lib\publishinfomsg.i &amp;infomsg = "'FAI REV ' + ttJobHead.JobNum"}
+
+			{lib\publishinfomsg.i &amp;infomsg = "'FAI REV ' + partplant.Character05"}
+
+		end.
+
+		{lib\publishinfomsg.i &amp;infomsg = "'TRAP6 '"}
+
+end.
+/*
+} ProcedureGen */
+
+
+{&amp;CATCH_PRIVATE}
+end procedure.
+/*
+} AblActionGen */</text></part></sourceCode></action></actions></directive></preProcDirectives><baseProcDirectives /><postProcDirectives /></method><method><code>JobEntry.GetDetails</code><businessObject>JobEntry</businessObject><name>GetDetails</name><preProcDirectives /><baseProcDirectives /><postProcDirectives><directive><name>FAI Check1</name><order>20</order><isEnabled>True</isEnabled><companyIndependent>True</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText /><actionText>synchronously execute ABL {lib\publishinfomsg.i &amp;infomsg = "'TRAP1 ... record nothing</actionText><globalID>f846e95c-bb96-3ba8-e511-4c73cae3ff79</globalID><isUpToDate>True</isUpToDate><scope /><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>FourGlActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.702.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;FourGlActionCfg3&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:FourGlActionConfig2 id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;ProgramActionConfig2_x0060_1_x002B_core href="#ref-4"/&amp;gt;
+&amp;lt;/a1:FourGlActionConfig2&amp;gt;
+&amp;lt;a2:FourGlActionCfg3 id="ref-4" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Declarations id="ref-5"&amp;gt;&amp;lt;/Declarations&amp;gt;
+&amp;lt;IsForward&amp;gt;false&amp;lt;/IsForward&amp;gt;
+&amp;lt;Procedure id="ref</text></part><part><order>2</order><text>-6"&amp;gt;{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP1 &amp;amp;#39;&amp;amp;#34;}
+
+for each ttjobhead  no-lock:
+{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP2 &amp;amp;#39;&amp;amp;#34;}
+
+	find first partplant where
+		partplant.Company = ttjobhead.Company and
+		Partplant.PartNum = ttjobhead.partnum and
+		partplant.Plant = ttjobhead.Plant no-lock no-error.
+		{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP3 &amp;amp;#39;&amp;amp;#34;}
+	
+		if not available partplant then do:
+		{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP4 &amp;amp;#39;&amp;amp;#34;}
+		
+		end.
+
+		if Available partplant then do:
+			{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP5 &amp;amp;#39;&amp;amp;#34;}
+			{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;Job= &amp;amp;#39; + ttJobHead.JobNum&amp;amp;#34;}
+			ttJobHead.ShortChar01 = &amp;amp;#34;FAI REQUIRED&amp;amp;#34;.
+			{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;FAI REV &amp;amp;#39; + partplant.Character05&amp;amp;</text></part><part><order>3</order><text>#34;}
+
+
+				For Each Partplant where
+					PartPlant.Company = ttJobhead.Company and
+					PartPlant.PartNum = ttJobHead.PartNum and
+					PartPlant.Plant = ttJobHead.Plant :
+					{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP8 &amp;amp;#39;&amp;amp;#34;}
+					{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;Job= &amp;amp;#39; + ttJobHead.JobNum&amp;amp;#34;}
+				
+					If Avail PartPlant then Do:
+					{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP9 &amp;amp;#39;&amp;amp;#34;}
+					Assign PartPlant.Character04 = ttJobHead.jobnum.
+
+					end.
+				end.
+
+
+
+
+		end.
+
+{lib\publishinfomsg.i &amp;amp;#38;infomsg = &amp;amp;#34;&amp;amp;#39;TRAP6 &amp;amp;#39;&amp;amp;#34;}
+
+end.&amp;lt;/Procedure&amp;gt;
+&amp;lt;SourceProc href="#ref-7"/&amp;gt;
+&amp;lt;AsyncMode&amp;gt;BPM_ASYNC_NONE&amp;lt;/AsyncMode&amp;gt;
+&amp;lt;DoRecordCall&amp;gt;false&amp;lt;/DoRecordCall&amp;gt;
+&amp;lt;DoRecordReturn&amp;gt;false&amp;lt;/DoRecordReturn&amp;gt;
+&amp;lt;batchOption&amp;gt;OnceForAllMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;primaryTable href="#ref-5"/&amp;gt;
+&amp;lt;Version xsi:null="</text></part><part><order>4</order><text>1"/&amp;gt;
+&amp;lt;/a2:FourGlActionCfg3&amp;gt;
+&amp;lt;a2:MethodInfoCfg2 id="ref-7" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;BoSource id="ref-8"&amp;gt;BO&amp;lt;/BoSource&amp;gt;
+&amp;lt;ObjName id="ref-9"&amp;gt;JobEntry&amp;lt;/ObjName&amp;gt;
+&amp;lt;Parameters href="#ref-10"/&amp;gt;
+&amp;lt;Location id="ref-11"&amp;gt;\GetDetails.p&amp;lt;/Location&amp;gt;
+&amp;lt;Version id="ref-12"&amp;gt;Bpm.CodeGen.Config.MethodInfoCfg2&amp;lt;/Version&amp;gt;
+&amp;lt;/a2:MethodInfoCfg2&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-10" SOAP-ENC:arrayType="a2:ParamCfg[13]" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;item href="#ref-13"/&amp;gt;
+&amp;lt;item href="#ref-14"/&amp;gt;
+&amp;lt;item href="#ref-15"/&amp;gt;
+&amp;lt;item href="#ref-16"/&amp;gt;
+&amp;lt;item href="#ref-17"/&amp;gt;
+&amp;lt;item href="#ref-18"/&amp;gt;
+&amp;lt;item href="#ref-19"/&amp;gt;
+&amp;lt;item href="#ref-20"/&amp;gt;
+&amp;lt;item href="#ref-21"/&amp;gt;
+&amp;lt;item href="#ref-22"/&amp;gt;
+&amp;lt;item href="#ref-23"/&amp;gt;
+&amp;lt;item href="#ref-24"/&amp;gt;</text></part><part><order>5</order><text>
+&amp;lt;item href="#ref-25"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-13" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-26"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-27"&amp;gt;jobNum&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-28"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-14" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-29"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-30"&amp;gt;targetAsm&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-31"&amp;gt;INTEGER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-15" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-32"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-33"&amp;gt;sourceFile&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-34"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Vers</text></part><part><order>6</order><text>ion xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-16" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-35"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-36"&amp;gt;sourceQuote&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-37"&amp;gt;INTEGER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-17" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-38"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-39"&amp;gt;sourceLine&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-40"&amp;gt;INTEGER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-18" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-41"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-42"&amp;gt;sourceJob&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-43"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:n</text></part><part><order>7</order><text>ull="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-19" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-44"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-45"&amp;gt;sourceAsm&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-46"&amp;gt;INTEGER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-20" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-47"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-48"&amp;gt;sourcePart&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-49"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-21" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-50"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-51"&amp;gt;sourceRev&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-52"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;</text></part><part><order>8</order><text>gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-22" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-53"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-54"&amp;gt;sourceAltMethod&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-55"&amp;gt;CHARACTER&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-23" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-56"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-57"&amp;gt;resequence&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-58"&amp;gt;LOGICAL&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-24" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-59"&amp;gt;INPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-60"&amp;gt;useMethodForParts&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-61"&amp;gt;LOGICAL&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1</text></part><part><order>9</order><text>"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;a2:ParamCfg id="ref-25" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Bpm.CodeGen.Config/Epicor.Mfg.Bpm.CodeGen"&amp;gt;
+&amp;lt;Direction id="ref-62"&amp;gt;OUTPUT&amp;lt;/Direction&amp;gt;
+&amp;lt;Name id="ref-63"&amp;gt;JobEntryDataSet&amp;lt;/Name&amp;gt;
+&amp;lt;Type id="ref-64"&amp;gt;DATASET$24&amp;lt;/Type&amp;gt;
+&amp;lt;Version xsi:null="1"/&amp;gt;
+&amp;lt;/a2:ParamCfg&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttJobHead_Backup.
+run ttJobHeadAttch_Backup.
+run ttJobAsmbl_Backup.
+run ttJobAsmblAttch_Backup.
+run ttJobAsmblInsp_Backup.
+run ttJobMtl_Backup.
+run ttJobMtlAttch_Backup.
+run ttJobMtlInsp_Backup.
+run ttJobMtlRefDes_Backup.
+run ttJobMtlRestriction_Backup.
+run ttJobMtlRestrictSubst_Backup.
+run ttJobOper_Backup.
+run ttJobOperAttch_Backup.
+run ttJobOperInsp_Backup.
+run ttJobOpDtl_Backup.
+run ttJobResources_Backup.
+run ttJobOperRestriction_Backup.
+run ttJobOperRestrictSubst_Backup.
+run ttJobAsmblRestriction_Backup.
+run ttJobAsmblRestrictSubst_Backup.
+run ttJobAsmRefDes_Backup.
+run ttJobAudit_Backup.
+run ttJobPart_Backup.
+run ttJobProd_Backup.
+					
+run GetDetails{RESULT} (INPUT-OUTPUT jobNum, INPUT-OUTPUT targetAsm, INPUT-OUTPUT sourceFile, INPUT-OUTPUT sourceQuote, INPUT-OUTPUT sourceLine, INPUT-OUTPUT sourceJob, INPUT-OUTPUT sourceAsm, INPUT-OUTPUT sourcePart, INPUT-OUTPUT sourceRev, INPUT-OUTPUT sourceAltMethod, INPUT-OUTPUT resequence, INPUT-OUTPUT useMetho</text></part><part><block>0</block><order>2</order><text>dForParts, INPUT-OUTPUT dataset JobEntryDataSetM).
+run ttJobHead_Restore.
+run ttJobHead_copyFromMatch.
+run ttJobHeadAttch_Restore.
+run ttJobHeadAttch_copyFromMatch.
+run ttJobAsmbl_Restore.
+run ttJobAsmbl_copyFromMatch.
+run ttJobAsmblAttch_Restore.
+run ttJobAsmblAttch_copyFromMatch.
+run ttJobAsmblInsp_Restore.
+run ttJobAsmblInsp_copyFromMatch.
+run ttJobMtl_Restore.
+run ttJobMtl_copyFromMatch.
+run ttJobMtlAttch_Restore.
+run ttJobMtlAttch_copyFromMatch.
+run ttJobMtlInsp_Restore.
+run ttJobMtlInsp_copyFromMatch.
+run ttJobMtlRefDes_Restore.
+run ttJobMtlRefDes_copyFromMatch.
+run ttJobMtlRestriction_Restore.
+run ttJobMtlRestriction_copyFromMatch.
+run ttJobMtlRestrictSubst_Restore.
+run ttJobMtlRestrictSubst_copyFromMatch.
+run ttJobOper_Restore.
+run ttJobOper_copyFromMatch.
+run ttJobOperAttch_Restore.
+run ttJobOperAttch_copyFromMatch.
+run ttJobOperInsp_Restore.
+run ttJobOperInsp_copyFromMatch.
+run ttJobOpDtl_Restore.
+run ttJobOpDtl_copyFromMatch.
+run ttJobResourc</text></part><part><block>0</block><order>3</order><text>es_Restore.
+run ttJobResources_copyFromMatch.
+run ttJobOperRestriction_Restore.
+run ttJobOperRestriction_copyFromMatch.
+run ttJobOperRestrictSubst_Restore.
+run ttJobOperRestrictSubst_copyFromMatch.
+run ttJobAsmblRestriction_Restore.
+run ttJobAsmblRestriction_copyFromMatch.
+run ttJobAsmblRestrictSubst_Restore.
+run ttJobAsmblRestrictSubst_copyFromMatch.
+run ttJobAsmRefDes_Restore.
+run ttJobAsmRefDes_copyFromMatch.
+run ttJobAudit_Restore.
+run ttJobAudit_copyFromMatch.
+run ttJobPart_Restore.
+run ttJobPart_copyFromMatch.
+run ttJobProd_Restore.
+run ttJobProd_copyFromMatch.</text></part><part><block>1</block><order>4</order><text>
+/* AblActionGen {
+*/
+
+procedure GetDetails{RESULT}:
+	define input-output parameter jobNum as character.
+	define input-output parameter targetAsm as integer.
+	define input-output parameter sourceFile as character.
+	define input-output parameter sourceQuote as integer.
+	define input-output parameter sourceLine as integer.
+	define input-output parameter sourceJob as character.
+	define input-output parameter sourceAsm as integer.
+	define input-output parameter sourcePart as character.
+	define input-output parameter sourceRev as character.
+	define input-output parameter sourceAltMethod as character.
+	define input-output parameter resequence as logical.
+	define input-output parameter useMethodForParts as logical.
+	define input-output parameter dataset for JobEntryDataSet.
+{&amp;TRY_PRIVATE}
+
+
+/* ProcedureGen {
+*/
+{lib\publishinfomsg.i &amp;infomsg = "'TRAP1 '"}
+
+for each ttjobhead  no-lock:
+{lib\publishinfomsg.i &amp;infomsg = "'TRAP2 '"}
+
+	find first partplant where
+		partplan</text></part><part><block>1</block><order>5</order><text>t.Company = ttjobhead.Company and
+		Partplant.PartNum = ttjobhead.partnum and
+		partplant.Plant = ttjobhead.Plant no-lock no-error.
+		{lib\publishinfomsg.i &amp;infomsg = "'TRAP3 '"}
+	
+		if not available partplant then do:
+		{lib\publishinfomsg.i &amp;infomsg = "'TRAP4 '"}
+		
+		end.
+
+		if Available partplant then do:
+			{lib\publishinfomsg.i &amp;infomsg = "'TRAP5 '"}
+			{lib\publishinfomsg.i &amp;infomsg = "'Job= ' + ttJobHead.JobNum"}
+			ttJobHead.ShortChar01 = "FAI REQUIRED".
+			{lib\publishinfomsg.i &amp;infomsg = "'FAI REV ' + partplant.Character05"}
+
+
+				For Each Partplant where
+					PartPlant.Company = ttJobhead.Company and
+					PartPlant.PartNum = ttJobHead.PartNum and
+					PartPlant.Plant = ttJobHead.Plant :
+					{lib\publishinfomsg.i &amp;infomsg = "'TRAP8 '"}
+					{lib\publishinfomsg.i &amp;infomsg = "'Job= ' + ttJobHead.JobNum"}
+				
+					If Avail PartPlant then Do:
+					{lib\publishinfomsg.i &amp;infomsg = "'TRAP9 '"}
+					Assign PartPlant.Character04 = ttJobHead.jobnum.
+
+					end.
+				end.
+
+
+
+
+		end.</text></part><part><block>1</block><order>6</order><text>
+
+{lib\publishinfomsg.i &amp;infomsg = "'TRAP6 '"}
+
+end.
+/*
+} ProcedureGen */
+
+
+{&amp;CATCH_PRIVATE}
+end procedure.
+/*
+} AblActionGen */</text></part></sourceCode></action></actions></directive></postProcDirectives></method><method><code>Part.Update</code><businessObject>Part</businessObject><name>Update</name><preProcDirectives><directive><name>FAI Date Stamp REMOVE</name><order>30</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText>the ttPart.CheckBox13 field has been changed from TRUE to False</conditionText><actionText>set the Part.Date02 field of the changed row to the NOW expression
+and set the Part.MfgComment field of the changed row to the "FAI Completed on: "... expression</actionText><globalID>faa74120-f2e2-d59a-e211-aac4cad62da7</globalID><isUpToDate>True</isUpToDate><scope /><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode><condition><order>1</order><typeName>FieldsChangedConditionType</typeName><operator /><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SimpleQueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_validationError id="ref-3"&amp;gt;&amp;lt;/_validationError&amp;gt;
+&amp;lt;_requireName&amp;gt;false&amp;lt;/_requireName&amp;gt;
+&amp;lt;_canEditName&amp;gt;false&amp;lt;/_canEditName&amp;gt;
+&amp;lt;_requireColumnsCardinality&amp;gt;Single&amp;lt;/_requireColumnsCardinality&amp;gt;
+&amp;lt;_canChangeFilter&amp;gt;false&amp;lt;/_canChangeFilter&amp;gt;
+&amp;lt;_name href="#ref-3"/&amp;gt;
+&amp;lt;_columnType href="#ref-3"/&amp;gt;
+&amp;lt;_f</text></part><part><order>2</order><text>romVal id="ref-4"&amp;gt;TRUE&amp;lt;/_fromVal&amp;gt;
+&amp;lt;_toVal id="ref-5"&amp;gt;False&amp;lt;/_toVal&amp;gt;
+&amp;lt;_tableName id="ref-6"&amp;gt;ttPart&amp;lt;/_tableName&amp;gt;
+&amp;lt;_filter&amp;gt;Modified&amp;lt;/_filter&amp;gt;
+&amp;lt;_columns href="#ref-7"/&amp;gt;
+&amp;lt;/a1:SimpleQueryConfig&amp;gt;
+&amp;lt;a2:Columns id="ref-7" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_columns href="#ref-8"/&amp;gt;
+&amp;lt;/a2:Columns&amp;gt;
+&amp;lt;a3:SortedList id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;keys href="#ref-9"/&amp;gt;
+&amp;lt;values href="#ref-10"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;version&amp;gt;1&amp;lt;/version&amp;gt;
+&amp;lt;comparer href="#ref-11"/&amp;gt;
+&amp;lt;keyList xsi:null="1"/&amp;gt;
+&amp;lt;valueList xsi:null="1"/&amp;gt;
+&amp;lt;/a3:SortedList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-9" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item xsi:type="xsd:int"&amp;gt;0&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-10" SOAP-ENC:arrayType="xsd:anyTy</text></part><part><order>3</order><text>pe[16]"&amp;gt;
+&amp;lt;item href="#ref-12"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:CaseInsensitiveComparer id="ref-11" xmlns:a3="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;m_compareInfo href="#ref-13"/&amp;gt;
+&amp;lt;/a3:CaseInsensitiveComparer&amp;gt;
+&amp;lt;a2:TableSchema_x002B_Column id="ref-12" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_tableName href="#ref-6"/&amp;gt;
+&amp;lt;_columnName id="ref-14"&amp;gt;CheckBox13&amp;lt;/_columnName&amp;gt;
+&amp;lt;_dataType id="ref-15"&amp;gt;LOGICAL&amp;lt;/_dataType&amp;gt;
+&amp;lt;_isUDField&amp;gt;false&amp;lt;/_isUDField&amp;gt;
+&amp;lt;/a2:TableSchema_x002B_Column&amp;gt;
+&amp;lt;a5:CompareInfo id="ref-13" xmlns:a5="http://schemas.microsoft.com/clr/ns/System.Globalization"&amp;gt;
+&amp;lt;win32LCID&amp;gt;1033&amp;lt;/win32LCID&amp;gt;
+&amp;lt;culture&amp;gt;1033&amp;lt;/culture&amp;gt;
+&amp;lt;m_name id="ref-16"&amp;gt;en-US&amp;lt;/m_name&amp;gt;
+&amp;lt;/a5:CompareInfo&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>1</block><order>1</order><text>
+
+function {RESULT}_forThisRow returns logical private (buffer cur for ttPart).
+    define variable result as logical initial false no-undo. 
+    define buffer org for ttPart.
+
+    if cur.RowMod &lt;&gt; {&amp;RowState_Unchanged} then do:
+        if cur.RowMod eq {&amp;RowState_Modified} then do:
+            find first org where org.RowMod = {&amp;RowState_Unchanged} and 
+                    org.RowIdent = cur.RowIdent no-error.
+            if available (org) then do:
+                assign result = (org.CheckBox13 &lt;&gt; cur.CheckBox13) and (org.CheckBox13 = TRUE) and (cur.CheckBox13 = False).
+            end.
+            else do: /* Old record is found. We assume that the field value _was_ changed */
+                assign result = true.
+            end.
+        end.
+        else if cur.RowMod = {&amp;RowState_Added} then do:
+            /* We do not process added records yet */
+        end.
+        else if cur.RowMod = {&amp;RowState_Deleted} then do:
+            /* We do not process delet</text></part><part><block>1</block><order>2</order><text>ed records yet */
+        end.
+    end.
+    else do: /* Unchanged record. This is erroneous fact */
+    end.
+    return result.
+end function.
+
+
+function {RESULT}_forAnyRow returns logical private ().
+    define buffer cur for ttPart.
+    for each cur:
+        if {RESULT}_forThisRow (buffer cur) then
+            return true.
+    end.
+    return false.
+end function.
+
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_Update}).
+    if available ttPartS then
+        return {RESULT}_forThisRow (buffer ttPartS).
+    
+    return {RESULT}_forAnyRow ().
+end function.</text></part></sourceCode></condition></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>SimpleRowUpdateActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SimpleFieldConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;rowSet id="ref-4"&amp;gt;AU&amp;lt;/rowSet&amp;gt;
+&amp;lt;valueText id="ref-5"&amp;gt;NOW&amp;lt;/valueText&amp;gt;
+&amp;lt;valuePreparedText href="#ref-5"/&amp;gt;
+&amp;lt;batchOption&amp;gt;ForEachMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__validationError id="ref-6"&amp;gt;&amp;lt;/SimpleQueryConfig_x002B__validationError&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__requireName&amp;gt;false&amp;lt;/SimpleQueryConfig_x00</text></part><part><order>2</order><text>2B__requireName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__canEditName&amp;gt;false&amp;lt;/SimpleQueryConfig_x002B__canEditName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__requireColumnsCardinality&amp;gt;Single&amp;lt;/SimpleQueryConfig_x002B__requireColumnsCardinality&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__canChangeFilter&amp;gt;false&amp;lt;/SimpleQueryConfig_x002B__canChangeFilter&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__name href="#ref-6"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__columnType href="#ref-6"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__fromVal xsi:null="1"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__toVal xsi:null="1"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__tableName id="ref-7"&amp;gt;ttPart&amp;lt;/SimpleQueryConfig_x002B__tableName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__filter&amp;gt;All&amp;lt;/SimpleQueryConfig_x002B__filter&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__columns href="#ref-8"/&amp;gt;
+&amp;lt;/a1:SimpleFieldConfig&amp;gt;
+&amp;lt;a5:Columns id="ref-8" xmlns:a5="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_column</text></part><part><order>3</order><text>s href="#ref-9"/&amp;gt;
+&amp;lt;/a5:Columns&amp;gt;
+&amp;lt;a6:SortedList id="ref-9" xmlns:a6="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;keys href="#ref-10"/&amp;gt;
+&amp;lt;values href="#ref-11"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;version&amp;gt;1&amp;lt;/version&amp;gt;
+&amp;lt;comparer href="#ref-12"/&amp;gt;
+&amp;lt;keyList xsi:null="1"/&amp;gt;
+&amp;lt;valueList xsi:null="1"/&amp;gt;
+&amp;lt;/a6:SortedList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-10" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item xsi:type="xsd:int"&amp;gt;0&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-11" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item href="#ref-13"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a6:CaseInsensitiveComparer id="ref-12" xmlns:a6="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;m_compareInfo href="#ref-14"/&amp;gt;
+&amp;lt;/a6:CaseInsensitiveComparer&amp;gt;
+&amp;lt;a5:TableSchema_x002B_Column id="ref-13" xmlns:a5="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BP</text></part><part><order>4</order><text>MPlugins"&amp;gt;
+&amp;lt;_tableName href="#ref-7"/&amp;gt;
+&amp;lt;_columnName id="ref-15"&amp;gt;Date02&amp;lt;/_columnName&amp;gt;
+&amp;lt;_dataType id="ref-16"&amp;gt;DATE&amp;lt;/_dataType&amp;gt;
+&amp;lt;_isUDField&amp;gt;false&amp;lt;/_isUDField&amp;gt;
+&amp;lt;/a5:TableSchema_x002B_Column&amp;gt;
+&amp;lt;a7:CompareInfo id="ref-14" xmlns:a7="http://schemas.microsoft.com/clr/ns/System.Globalization"&amp;gt;
+&amp;lt;win32LCID&amp;gt;1033&amp;lt;/win32LCID&amp;gt;
+&amp;lt;culture&amp;gt;1033&amp;lt;/culture&amp;gt;
+&amp;lt;m_name id="ref-17"&amp;gt;en-US&amp;lt;/m_name&amp;gt;
+&amp;lt;/a7:CompareInfo&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttPart_Backup.
+run ttPartAttch_Backup.
+run ttPartCOO_Backup.
+run ttPartDim_Backup.
+run ttPartLangDesc_Backup.
+run ttPartPlant_Backup.
+run ttPartWhse_Backup.
+run ttPartBinInfo_Backup.
+run ttPartRestriction_Backup.
+run ttPartRestrictSubst_Backup.
+run ttPartRev_Backup.
+run ttPartRevAttch_Backup.
+run ttPartAudit_Backup.
+run ttPartRevInspPlan_Backup.
+run ttPartRevInspPlanAttch_Backup.
+run ttPartRevInspVend_Backup.
+run ttPartSubs_Backup.
+run ttPartUOM_Backup.
+run ttEntityGLC_Backup.
+run ttTaxExempt_Backup.
+run ttPartPC_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_Update}).
+run ttPart_Restore.
+run ttPart_copyFromMatch.
+run ttPartAttch_Restore.
+run ttPartAttch_copyFromMatch.
+run ttPartCOO_Restore.
+run ttPartCOO_copyFromMatch.
+run ttPartDim_Restore.
+run ttPartDim_copyFromMatch.
+run ttPartLangDesc_Restore.
+run ttPartLangDesc_copyFromMatch.
+run ttPartPlant_Restore.
+run ttPartPlant_copyFromMatch.
+run ttPartWhse_Restore.
+run ttPartWhse_copyFromMatch.</text></part><part><block>0</block><order>2</order><text>
+run ttPartBinInfo_Restore.
+run ttPartBinInfo_copyFromMatch.
+run ttPartRestriction_Restore.
+run ttPartRestriction_copyFromMatch.
+run ttPartRestrictSubst_Restore.
+run ttPartRestrictSubst_copyFromMatch.
+run ttPartRev_Restore.
+run ttPartRev_copyFromMatch.
+run ttPartRevAttch_Restore.
+run ttPartRevAttch_copyFromMatch.
+run ttPartAudit_Restore.
+run ttPartAudit_copyFromMatch.
+run ttPartRevInspPlan_Restore.
+run ttPartRevInspPlan_copyFromMatch.
+run ttPartRevInspPlanAttch_Restore.
+run ttPartRevInspPlanAttch_copyFromMatch.
+run ttPartRevInspVend_Restore.
+run ttPartRevInspVend_copyFromMatch.
+run ttPartSubs_Restore.
+run ttPartSubs_copyFromMatch.
+run ttPartUOM_Restore.
+run ttPartUOM_copyFromMatch.
+run ttEntityGLC_Restore.
+run ttEntityGLC_copyFromMatch.
+run ttTaxExempt_Restore.
+run ttTaxExempt_copyFromMatch.
+run ttPartPC_Restore.
+run ttPartPC_copyFromMatch.</text></part><part><block>1</block><order>3</order><text>
+
+procedure {RESULT}_execute:
+{&amp;TRY_PRIVATE}
+
+    {&amp;DECL_INPUT-OUTPUT_P_Update}
+
+    for each ttPart where ttPart.RowMod = 'A' or ttPart.RowMod = 'U':
+     assign ttPart.Date02 = (NOW). 
+
+end.
+
+
+{&amp;CATCH_PRIVATE}
+end procedure.</text></part></sourceCode></action><action><order>2</order><typeName>SimpleRowUpdateActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SimpleFieldConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;rowSet id="ref-4"&amp;gt;AU&amp;lt;/rowSet&amp;gt;
+&amp;lt;valueText id="ref-5"&amp;gt;&amp;amp;#34;FAI Completed on: &amp;amp;#34; + String( NOW ,&amp;amp;#34;99-99-9999&amp;amp;#34;) + &amp;amp;#34; By: &amp;amp;#34; + ttCallContextClient.CurrentUserId + &amp;amp;#34; To: &amp;amp;#34; + ttPart.PartDescription + chr(10) + ttpart.MfgComment
+&amp;lt;/valueText&amp;gt;
+&amp;lt;valuePreparedText href="#ref-5"/&amp;gt;
+&amp;lt;batchOption&amp;gt;</text></part><part><order>2</order><text>ForEachMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__validationError id="ref-6"&amp;gt;&amp;lt;/SimpleQueryConfig_x002B__validationError&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__requireName&amp;gt;false&amp;lt;/SimpleQueryConfig_x002B__requireName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__canEditName&amp;gt;false&amp;lt;/SimpleQueryConfig_x002B__canEditName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__requireColumnsCardinality&amp;gt;Single&amp;lt;/SimpleQueryConfig_x002B__requireColumnsCardinality&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__canChangeFilter&amp;gt;false&amp;lt;/SimpleQueryConfig_x002B__canChangeFilter&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__name href="#ref-6"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__columnType href="#ref-6"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__fromVal xsi:null="1"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__toVal xsi:null="1"/&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__tableName id="ref-7"&amp;gt;ttPart&amp;lt;/SimpleQueryConfig_x002B__tableName&amp;gt;
+&amp;lt;SimpleQueryConfig_x002B__filter&amp;gt;All&amp;lt;/SimpleQueryConfig_x002B__filter&amp;gt;
+&amp;lt;SimpleQueryCon</text></part><part><order>3</order><text>fig_x002B__columns href="#ref-8"/&amp;gt;
+&amp;lt;/a1:SimpleFieldConfig&amp;gt;
+&amp;lt;a5:Columns id="ref-8" xmlns:a5="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_columns href="#ref-9"/&amp;gt;
+&amp;lt;/a5:Columns&amp;gt;
+&amp;lt;a6:SortedList id="ref-9" xmlns:a6="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;keys href="#ref-10"/&amp;gt;
+&amp;lt;values href="#ref-11"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;version&amp;gt;1&amp;lt;/version&amp;gt;
+&amp;lt;comparer href="#ref-12"/&amp;gt;
+&amp;lt;keyList xsi:null="1"/&amp;gt;
+&amp;lt;valueList xsi:null="1"/&amp;gt;
+&amp;lt;/a6:SortedList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-10" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item xsi:type="xsd:int"&amp;gt;0&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-11" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item href="#ref-13"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a6:CaseInsensitiveComparer id="ref-12" xmlns:a6="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;</text></part><part><order>4</order><text>
+&amp;lt;m_compareInfo href="#ref-14"/&amp;gt;
+&amp;lt;/a6:CaseInsensitiveComparer&amp;gt;
+&amp;lt;a5:TableSchema_x002B_Column id="ref-13" xmlns:a5="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_tableName href="#ref-7"/&amp;gt;
+&amp;lt;_columnName id="ref-15"&amp;gt;MfgComment&amp;lt;/_columnName&amp;gt;
+&amp;lt;_dataType id="ref-16"&amp;gt;CHARACTER&amp;lt;/_dataType&amp;gt;
+&amp;lt;_isUDField&amp;gt;false&amp;lt;/_isUDField&amp;gt;
+&amp;lt;/a5:TableSchema_x002B_Column&amp;gt;
+&amp;lt;a7:CompareInfo id="ref-14" xmlns:a7="http://schemas.microsoft.com/clr/ns/System.Globalization"&amp;gt;
+&amp;lt;win32LCID&amp;gt;1033&amp;lt;/win32LCID&amp;gt;
+&amp;lt;culture&amp;gt;1033&amp;lt;/culture&amp;gt;
+&amp;lt;m_name id="ref-17"&amp;gt;en-US&amp;lt;/m_name&amp;gt;
+&amp;lt;/a7:CompareInfo&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttPart_Backup.
+run ttPartAttch_Backup.
+run ttPartCOO_Backup.
+run ttPartDim_Backup.
+run ttPartLangDesc_Backup.
+run ttPartPlant_Backup.
+run ttPartWhse_Backup.
+run ttPartBinInfo_Backup.
+run ttPartRestriction_Backup.
+run ttPartRestrictSubst_Backup.
+run ttPartRev_Backup.
+run ttPartRevAttch_Backup.
+run ttPartAudit_Backup.
+run ttPartRevInspPlan_Backup.
+run ttPartRevInspPlanAttch_Backup.
+run ttPartRevInspVend_Backup.
+run ttPartSubs_Backup.
+run ttPartUOM_Backup.
+run ttEntityGLC_Backup.
+run ttTaxExempt_Backup.
+run ttPartPC_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_Update}).
+run ttPart_Restore.
+run ttPart_copyFromMatch.
+run ttPartAttch_Restore.
+run ttPartAttch_copyFromMatch.
+run ttPartCOO_Restore.
+run ttPartCOO_copyFromMatch.
+run ttPartDim_Restore.
+run ttPartDim_copyFromMatch.
+run ttPartLangDesc_Restore.
+run ttPartLangDesc_copyFromMatch.
+run ttPartPlant_Restore.
+run ttPartPlant_copyFromMatch.
+run ttPartWhse_Restore.
+run ttPartWhse_copyFromMatch.</text></part><part><block>0</block><order>2</order><text>
+run ttPartBinInfo_Restore.
+run ttPartBinInfo_copyFromMatch.
+run ttPartRestriction_Restore.
+run ttPartRestriction_copyFromMatch.
+run ttPartRestrictSubst_Restore.
+run ttPartRestrictSubst_copyFromMatch.
+run ttPartRev_Restore.
+run ttPartRev_copyFromMatch.
+run ttPartRevAttch_Restore.
+run ttPartRevAttch_copyFromMatch.
+run ttPartAudit_Restore.
+run ttPartAudit_copyFromMatch.
+run ttPartRevInspPlan_Restore.
+run ttPartRevInspPlan_copyFromMatch.
+run ttPartRevInspPlanAttch_Restore.
+run ttPartRevInspPlanAttch_copyFromMatch.
+run ttPartRevInspVend_Restore.
+run ttPartRevInspVend_copyFromMatch.
+run ttPartSubs_Restore.
+run ttPartSubs_copyFromMatch.
+run ttPartUOM_Restore.
+run ttPartUOM_copyFromMatch.
+run ttEntityGLC_Restore.
+run ttEntityGLC_copyFromMatch.
+run ttTaxExempt_Restore.
+run ttTaxExempt_copyFromMatch.
+run ttPartPC_Restore.
+run ttPartPC_copyFromMatch.</text></part><part><block>1</block><order>3</order><text>
+
+procedure {RESULT}_execute:
+{&amp;TRY_PRIVATE}
+
+    {&amp;DECL_INPUT-OUTPUT_P_Update}
+
+    for each ttPart where ttPart.RowMod = 'A' or ttPart.RowMod = 'U':
+     assign ttPart.MfgComment = ("FAI Completed on: " + String( NOW ,"99-99-9999") + " By: " + ttCallContextClient.CurrentUserId + " To: " + ttPart.PartDescription + chr(10) + ttpart.MfgComment
+). 
+
+end.
+
+
+{&amp;CATCH_PRIVATE}
+end procedure.</text></part></sourceCode></action></actions></directive><directive><name>FAI Alert CT REMOVE</name><order>40</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText>number of rows in the 'PLANT' query is not less than 1
+and the ttPart.CheckBox13 field has been changed from TRUE to FALSE</conditionText><actionText>send e-mail asynchronously based on the FAI Job Alert template</actionText><globalID>9ae409e7-0279-e08b-e211-cbc7f9945e2f</globalID><isUpToDate>True</isUpToDate><scope>Null</scope><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode><condition><order>1</order><typeName>QueryConditionType</typeName><operator /><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:QueryCondition_x002B_QueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Conditions/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;comparison id="ref-3"&amp;gt;&amp;amp;#62;=&amp;lt;/comparison&amp;gt;
+&amp;lt;numRows&amp;gt;1&amp;lt;/numRows&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryText id="ref-4"&amp;gt;for each ttpart no-lock  where curplant = &amp;amp;#34;MfgSys&amp;amp;#34;
+&amp;lt;/EditQueryConfig_x002B__queryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__realQueryText id="ref-5"&amp;gt;for each ttpart no-lock  where curplant =</text></part><part><order>2</order><text> &amp;amp;#39;MfgSys&amp;amp;#39;&amp;lt;/EditQueryConfig_x002B__realQueryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryField id="ref-6"&amp;gt;ttpart.AESExp&amp;lt;/EditQueryConfig_x002B__queryField&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryFieldType id="ref-7"&amp;gt;&amp;lt;/EditQueryConfig_x002B__queryFieldType&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryName id="ref-8"&amp;gt;PLANT&amp;lt;/EditQueryConfig_x002B__queryName&amp;gt;
+&amp;lt;EditQueryConfig_x002B__validationError href="#ref-7"/&amp;gt;
+&amp;lt;/a1:QueryCondition_x002B_QueryConfig&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run {RESULT}_p_Update(output {RESULT}).</text></part><part><block>1</block><order>1</order><text>
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_Update}).
+
+    def var query_result as handle no-undo.
+    def var buf as handle no-undo.
+    def var query_string as character no-undo.
+    def var required_rows as integer initial 1 no-undo.
+    def var actual_rows as integer initial 0 no-undo.
+
+    query_string = "for each ttpart no-lock  where curplant = 'MfgSys'".
+
+    run ExecuteFreeFormQuery (query_string, "=1", output dataset-handle query_result).
+    
+    assign buf = query_result:get-buffer-handle (1).
+    buf:find-first () no-error.
+
+    if not buf:available then 
+        actual_rows = 0.
+    else do:
+        def var query_iter as handle no-undo.
+        
+        create query query_iter.
+        query_iter:set-buffers (buf).
+        query_iter:query-prepare ("for each ":u + buf:table + " no-lock":u).
+        query_iter:query-open ().
+        query_iter:get-first ().
+        do while not query_iter:query-off-end:
+	        if buf:avail</text></part><part><block>1</block><order>2</order><text>able then do:
+                actual_rows = actual_rows + 1.
+	            if actual_rows &gt; required_rows then 
+                    leave.
+	        end.
+	        query_iter:get-next ().
+        end.
+    end.
+    delete object query_result.
+    return (actual_rows &gt;= required_rows).
+end function.</text></part></sourceCode></condition><condition><order>2</order><typeName>FieldsChangedConditionType</typeName><operator>and</operator><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SimpleQueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_validationError id="ref-3"&amp;gt;&amp;lt;/_validationError&amp;gt;
+&amp;lt;_requireName&amp;gt;false&amp;lt;/_requireName&amp;gt;
+&amp;lt;_canEditName&amp;gt;false&amp;lt;/_canEditName&amp;gt;
+&amp;lt;_requireColumnsCardinality&amp;gt;Single&amp;lt;/_requireColumnsCardinality&amp;gt;
+&amp;lt;_canChangeFilter&amp;gt;false&amp;lt;/_canChangeFilter&amp;gt;
+&amp;lt;_name href="#ref-3"/&amp;gt;
+&amp;lt;_columnType href="#ref-3"/&amp;gt;
+&amp;lt;_f</text></part><part><order>2</order><text>romVal id="ref-4"&amp;gt;TRUE&amp;lt;/_fromVal&amp;gt;
+&amp;lt;_toVal id="ref-5"&amp;gt;FALSE&amp;lt;/_toVal&amp;gt;
+&amp;lt;_tableName id="ref-6"&amp;gt;ttPart&amp;lt;/_tableName&amp;gt;
+&amp;lt;_filter&amp;gt;Modified&amp;lt;/_filter&amp;gt;
+&amp;lt;_columns href="#ref-7"/&amp;gt;
+&amp;lt;/a1:SimpleQueryConfig&amp;gt;
+&amp;lt;a2:Columns id="ref-7" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_columns href="#ref-8"/&amp;gt;
+&amp;lt;/a2:Columns&amp;gt;
+&amp;lt;a3:SortedList id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;keys href="#ref-9"/&amp;gt;
+&amp;lt;values href="#ref-10"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;version&amp;gt;1&amp;lt;/version&amp;gt;
+&amp;lt;comparer href="#ref-11"/&amp;gt;
+&amp;lt;keyList xsi:null="1"/&amp;gt;
+&amp;lt;valueList xsi:null="1"/&amp;gt;
+&amp;lt;/a3:SortedList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-9" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item xsi:type="xsd:int"&amp;gt;0&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-10" SOAP-ENC:arrayType="xsd:anyTy</text></part><part><order>3</order><text>pe[16]"&amp;gt;
+&amp;lt;item href="#ref-12"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:CaseInsensitiveComparer id="ref-11" xmlns:a3="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;m_compareInfo href="#ref-13"/&amp;gt;
+&amp;lt;/a3:CaseInsensitiveComparer&amp;gt;
+&amp;lt;a2:TableSchema_x002B_Column id="ref-12" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_tableName href="#ref-6"/&amp;gt;
+&amp;lt;_columnName id="ref-14"&amp;gt;CheckBox13&amp;lt;/_columnName&amp;gt;
+&amp;lt;_dataType id="ref-15"&amp;gt;LOGICAL&amp;lt;/_dataType&amp;gt;
+&amp;lt;_isUDField&amp;gt;false&amp;lt;/_isUDField&amp;gt;
+&amp;lt;/a2:TableSchema_x002B_Column&amp;gt;
+&amp;lt;a5:CompareInfo id="ref-13" xmlns:a5="http://schemas.microsoft.com/clr/ns/System.Globalization"&amp;gt;
+&amp;lt;win32LCID&amp;gt;1033&amp;lt;/win32LCID&amp;gt;
+&amp;lt;culture&amp;gt;1033&amp;lt;/culture&amp;gt;
+&amp;lt;m_name id="ref-16"&amp;gt;en-US&amp;lt;/m_name&amp;gt;
+&amp;lt;/a5:CompareInfo&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>1</block><order>1</order><text>
+
+function {RESULT}_forThisRow returns logical private (buffer cur for ttPart).
+    define variable result as logical initial false no-undo. 
+    define buffer org for ttPart.
+
+    if cur.RowMod &lt;&gt; {&amp;RowState_Unchanged} then do:
+        if cur.RowMod eq {&amp;RowState_Modified} then do:
+            find first org where org.RowMod = {&amp;RowState_Unchanged} and 
+                    org.RowIdent = cur.RowIdent no-error.
+            if available (org) then do:
+                assign result = (org.CheckBox13 &lt;&gt; cur.CheckBox13) and (org.CheckBox13 = TRUE) and (cur.CheckBox13 = FALSE).
+            end.
+            else do: /* Old record is found. We assume that the field value _was_ changed */
+                assign result = true.
+            end.
+        end.
+        else if cur.RowMod = {&amp;RowState_Added} then do:
+            /* We do not process added records yet */
+        end.
+        else if cur.RowMod = {&amp;RowState_Deleted} then do:
+            /* We do not process delet</text></part><part><block>1</block><order>2</order><text>ed records yet */
+        end.
+    end.
+    else do: /* Unchanged record. This is erroneous fact */
+    end.
+    return result.
+end function.
+
+
+function {RESULT}_forAnyRow returns logical private ().
+    define buffer cur for ttPart.
+    for each cur:
+        if {RESULT}_forThisRow (buffer cur) then
+            return true.
+    end.
+    return false.
+end function.
+
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_Update}).
+    if available ttPartS then
+        return {RESULT}_forThisRow (buffer ttPartS).
+    
+    return {RESULT}_forAnyRow ().
+end function.</text></part></sourceCode></condition></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>SendMailActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.702.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SendMailActionConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;batchOption&amp;gt;OnceForAllMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;primTable id="ref-4"&amp;gt;ttPart&amp;lt;/primTable&amp;gt;
+&amp;lt;_async&amp;gt;true&amp;lt;/_async&amp;gt;
+&amp;lt;EmailConfig_x002B__validationError id="ref-5"&amp;gt;&amp;lt;/EmailConfig_x002B__validationError&amp;gt;
+&amp;lt;EmailConfig_x002B__name id="ref-6"&amp;gt;FAI Job Alert&amp;lt;/EmailConfig_x002B__name&amp;gt;
+&amp;lt;EmailConfig_x002B__as</text></part><part><order>2</order><text>ync&amp;gt;true&amp;lt;/EmailConfig_x002B__async&amp;gt;
+&amp;lt;EmailConfig_x002B__emailFrom href="#ref-7"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailTo href="#ref-8"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailCC href="#ref-9"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailSubject href="#ref-10"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailBody href="#ref-11"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailMimeHeader href="#ref-5"/&amp;gt;
+&amp;lt;/a1:SendMailActionConfig&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-7" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-12"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-13"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-9" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="</text></part><part><order>3</order><text>#ref-14"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-10" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-15"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-11" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-16"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-12" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-17"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-13" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-18"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-14" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.</text></part><part><order>4</order><text>Collections"&amp;gt;
+&amp;lt;_items href="#ref-19"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-15" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-20"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-16" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-21"/&amp;gt;
+&amp;lt;_size&amp;gt;7&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;7&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-17" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-22" xsi:type="SOAP-ENC:string"&amp;gt;Epicor@FranklinProducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-18" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-23" xsi:type="SOAP-ENC:string"&amp;gt;anicol@franklinproducts.net; gfkowal@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOA</text></part><part><order>5</order><text>P-ENC:Array id="ref-19" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item href="#ref-5"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-20" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-24" xsi:type="SOAP-ENC:string"&amp;gt;FAI Job Compleation in CT&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-21" SOAP-ENC:arrayType="xsd:anyType[8]"&amp;gt;
+&amp;lt;item id="ref-25" xsi:type="SOAP-ENC:string"&amp;gt;FAI for P/N: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-26"/&amp;gt;
+&amp;lt;item id="ref-27" xsi:type="SOAP-ENC:string"&amp;gt; was Just compleated by: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-28"/&amp;gt;
+&amp;lt;item id="ref-29" xsi:type="SOAP-ENC:string"&amp;gt;
+Part Description:  &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-30"/&amp;gt;
+&amp;lt;item id="ref-31" xsi:type="SOAP-ENC:string"&amp;gt;
+&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-26" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;I</text></part><part><order>6</order><text>sUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-32"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-33"&amp;gt;PartNum&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-34"&amp;gt;ttPart&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-35"&amp;gt;Part&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-28" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType href="#ref-32"/&amp;gt;
+&amp;lt;Field id="ref-36"&amp;gt;CurrentUserId&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-37"&amp;gt;ttCallContextClient&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-38"&amp;gt;User&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-30" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;</text></part><part><order>7</order><text>lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-39"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-40"&amp;gt;PartDescription&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-41"&amp;gt;ttPart&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;Added&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-42"&amp;gt;Desc&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttPart_Backup.
+run ttPartAttch_Backup.
+run ttPartCOO_Backup.
+run ttPartDim_Backup.
+run ttPartLangDesc_Backup.
+run ttPartPlant_Backup.
+run ttPartRestriction_Backup.
+run ttPartRestrictSubst_Backup.
+run ttPartRev_Backup.
+run ttPartRevAttch_Backup.
+run ttPartAudit_Backup.
+run ttPartCOPart_Backup.
+run ttPartRevInspPlan_Backup.
+run ttPartRevInspPlanAttch_Backup.
+run ttPartRevInspVend_Backup.
+run ttPartSubs_Backup.
+run ttPartBinInfo_Backup.
+run ttPartPC_Backup.
+run ttPartWhse_Backup.
+run ttPartUOM_Backup.
+run ttEntityGLC_Backup.
+run ttTaxExempt_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_Update}).
+
+run ttPart_Restore.
+run ttPart_copyFromMatch.
+run ttPartAttch_Restore.
+run ttPartAttch_copyFromMatch.
+run ttPartCOO_Restore.
+run ttPartCOO_copyFromMatch.
+run ttPartDim_Restore.
+run ttPartDim_copyFromMatch.
+run ttPartLangDesc_Restore.
+run ttPartLangDesc_copyFromMatch.
+run ttPartPlant_Restore.
+run ttPartPlant_copyFromMatch.
+run ttPartRestriction_Rest</text></part><part><block>0</block><order>2</order><text>ore.
+run ttPartRestriction_copyFromMatch.
+run ttPartRestrictSubst_Restore.
+run ttPartRestrictSubst_copyFromMatch.
+run ttPartRev_Restore.
+run ttPartRev_copyFromMatch.
+run ttPartRevAttch_Restore.
+run ttPartRevAttch_copyFromMatch.
+run ttPartAudit_Restore.
+run ttPartAudit_copyFromMatch.
+run ttPartCOPart_Restore.
+run ttPartCOPart_copyFromMatch.
+run ttPartRevInspPlan_Restore.
+run ttPartRevInspPlan_copyFromMatch.
+run ttPartRevInspPlanAttch_Restore.
+run ttPartRevInspPlanAttch_copyFromMatch.
+run ttPartRevInspVend_Restore.
+run ttPartRevInspVend_copyFromMatch.
+run ttPartSubs_Restore.
+run ttPartSubs_copyFromMatch.
+run ttPartBinInfo_Restore.
+run ttPartBinInfo_copyFromMatch.
+run ttPartPC_Restore.
+run ttPartPC_copyFromMatch.
+run ttPartWhse_Restore.
+run ttPartWhse_copyFromMatch.
+run ttPartUOM_Restore.
+run ttPartUOM_copyFromMatch.
+run ttEntityGLC_Restore.
+run ttEntityGLC_copyFromMatch.
+run ttTaxExempt_Restore.
+run ttTaxExempt_copyFromMatch.</text></part><part><block>1</block><order>3</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_Update}
+
+
+    def var from_ as char no-undo init '':u.
+    def var to_ as char no-undo init '':u.
+    def var cc as char no-undo init '':u.
+    def var subject as char no-undo init '':u.
+    def var body as char no-undo init '':u.
+    def buffer ttPartBuf for ttPart.
+    def buffer ttCallContextClientBuf for ttCallContextClient.
+    def var keyfld as char extent {&amp;MAX_KEY} no-undo.
+    def var nkeyfld as integer no-undo.
+    def var keyval as char extent {&amp;MAX_KEY} no-undo.
+    def var hquery as handle no-undo.
+    def var hbuf as handle no-undo.
+    def var pos as integer no-undo.
+    def var hExecute as handle no-undo.
+
+    run Bpm/BpmEmail.p persistent set hExecute.
+
+        from_ = '':u.
+        to_ = '':u.
+        cc = '':u.
+        subject = '':u.
+        body = '':u.
+
+        assign from_ = from_ + 'Epicor@FranklinProducts.net'.
+
+        assign to_ = to_ + 'anicol@franklinproducts.net; gfkowal@fra</text></part><part><block>1</block><order>4</order><text>nklinproducts.net'.
+
+        assign subject = subject + 'FAI Job Compleation in CT'.
+
+        assign body = body + 'FAI for P~/N: '.
+
+        pos = 1.
+        for each ttPart:
+            if ttPart.RowMod = {&amp;RowState_Unchanged} and 
+                can-find (ttPartBuf where ttPartBuf.RowIdent = ttPart.RowIdent and
+                    ttPartBuf.RowMod = {&amp;RowState_Modified}) then next.
+define var fieldVal_body1 as character no-undo.
+assign fieldVal_body1 =  string (ttPart.PartNum).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body1 &lt;&gt; ? then fieldVal_body1 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + ' was Just compleated by: '.
+
+        pos = 1.
+        for each ttCallContextClient:
+define var fieldVal_body3 as character no-undo.
+assign fieldVal_body3 =  string (ttCallContextClient.CurrentUserId).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body3 &lt;&gt; ? then fieldVal_body</text></part><part><block>1</block><order>5</order><text>3 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~nPart Description:  '.
+
+        pos = 1.
+        for each ttPart:
+            if ttPart.RowMod = {&amp;RowState_Deleted} then next.
+            if ttPart.RowMod = {&amp;RowState_Modified} then next.
+            if ttPart.RowMod = {&amp;RowState_Unchanged} then next.
+define var fieldVal_body5 as character no-undo.
+assign fieldVal_body5 =  string (ttPart.PartDescription).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body5 &lt;&gt; ? then fieldVal_body5 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~n'.
+
+            run SendEmail in hExecute (true, CUR-COMP, from_, to_, cc, subject, body, "":U).
+
+
+    if valid-handle (hExecute) then 
+        delete procedure hExecute.
+end procedure.</text></part></sourceCode></action></actions></directive><directive><name>FAI Alert TX REMOVE</name><order>50</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText>number of rows in the 'Plant' query is not less than 1
+and the ttPart.CheckBox13 field has been changed from TRUE to FALSE</conditionText><actionText>send e-mail asynchronously based on the FAI Alert template</actionText><globalID>a1a3021d-7be4-8db6-e211-ccc7a137e8bf</globalID><isUpToDate>True</isUpToDate><scope>Null</scope><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode><condition><order>1</order><typeName>QueryConditionType</typeName><operator /><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:QueryCondition_x002B_QueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Conditions/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;comparison id="ref-3"&amp;gt;&amp;amp;#62;=&amp;lt;/comparison&amp;gt;
+&amp;lt;numRows&amp;gt;1&amp;lt;/numRows&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryText id="ref-4"&amp;gt;for each ttpart no-lock  where curplant = &amp;amp;#34;05&amp;amp;#34;&amp;lt;/EditQueryConfig_x002B__queryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__realQueryText id="ref-5"&amp;gt;for each ttpart no-lock  where curplant = &amp;amp;</text></part><part><order>2</order><text>#39;05&amp;amp;#39;&amp;lt;/EditQueryConfig_x002B__realQueryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryField id="ref-6"&amp;gt;ttpart.AESExp&amp;lt;/EditQueryConfig_x002B__queryField&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryFieldType id="ref-7"&amp;gt;&amp;lt;/EditQueryConfig_x002B__queryFieldType&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryName id="ref-8"&amp;gt;Plant&amp;lt;/EditQueryConfig_x002B__queryName&amp;gt;
+&amp;lt;EditQueryConfig_x002B__validationError href="#ref-7"/&amp;gt;
+&amp;lt;/a1:QueryCondition_x002B_QueryConfig&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run {RESULT}_p_Update(output {RESULT}).</text></part><part><block>1</block><order>1</order><text>
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_Update}).
+
+    def var query_result as handle no-undo.
+    def var buf as handle no-undo.
+    def var query_string as character no-undo.
+    def var required_rows as integer initial 1 no-undo.
+    def var actual_rows as integer initial 0 no-undo.
+
+    query_string = "for each ttpart no-lock  where curplant = '05'".
+
+    run ExecuteFreeFormQuery (query_string, "=1", output dataset-handle query_result).
+    
+    assign buf = query_result:get-buffer-handle (1).
+    buf:find-first () no-error.
+
+    if not buf:available then 
+        actual_rows = 0.
+    else do:
+        def var query_iter as handle no-undo.
+        
+        create query query_iter.
+        query_iter:set-buffers (buf).
+        query_iter:query-prepare ("for each ":u + buf:table + " no-lock":u).
+        query_iter:query-open ().
+        query_iter:get-first ().
+        do while not query_iter:query-off-end:
+	        if buf:available</text></part><part><block>1</block><order>2</order><text> then do:
+                actual_rows = actual_rows + 1.
+	            if actual_rows &gt; required_rows then 
+                    leave.
+	        end.
+	        query_iter:get-next ().
+        end.
+    end.
+    delete object query_result.
+    return (actual_rows &gt;= required_rows).
+end function.</text></part></sourceCode></condition><condition><order>2</order><typeName>FieldsChangedConditionType</typeName><operator>and</operator><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SimpleQueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_validationError id="ref-3"&amp;gt;&amp;lt;/_validationError&amp;gt;
+&amp;lt;_requireName&amp;gt;false&amp;lt;/_requireName&amp;gt;
+&amp;lt;_canEditName&amp;gt;false&amp;lt;/_canEditName&amp;gt;
+&amp;lt;_requireColumnsCardinality&amp;gt;Single&amp;lt;/_requireColumnsCardinality&amp;gt;
+&amp;lt;_canChangeFilter&amp;gt;false&amp;lt;/_canChangeFilter&amp;gt;
+&amp;lt;_name href="#ref-3"/&amp;gt;
+&amp;lt;_columnType href="#ref-3"/&amp;gt;
+&amp;lt;_f</text></part><part><order>2</order><text>romVal id="ref-4"&amp;gt;TRUE&amp;lt;/_fromVal&amp;gt;
+&amp;lt;_toVal id="ref-5"&amp;gt;FALSE&amp;lt;/_toVal&amp;gt;
+&amp;lt;_tableName id="ref-6"&amp;gt;ttPart&amp;lt;/_tableName&amp;gt;
+&amp;lt;_filter&amp;gt;Modified&amp;lt;/_filter&amp;gt;
+&amp;lt;_columns href="#ref-7"/&amp;gt;
+&amp;lt;/a1:SimpleQueryConfig&amp;gt;
+&amp;lt;a2:Columns id="ref-7" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_columns href="#ref-8"/&amp;gt;
+&amp;lt;/a2:Columns&amp;gt;
+&amp;lt;a3:SortedList id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;keys href="#ref-9"/&amp;gt;
+&amp;lt;values href="#ref-10"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;version&amp;gt;1&amp;lt;/version&amp;gt;
+&amp;lt;comparer href="#ref-11"/&amp;gt;
+&amp;lt;keyList xsi:null="1"/&amp;gt;
+&amp;lt;valueList xsi:null="1"/&amp;gt;
+&amp;lt;/a3:SortedList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-9" SOAP-ENC:arrayType="xsd:anyType[16]"&amp;gt;
+&amp;lt;item xsi:type="xsd:int"&amp;gt;0&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-10" SOAP-ENC:arrayType="xsd:anyTy</text></part><part><order>3</order><text>pe[16]"&amp;gt;
+&amp;lt;item href="#ref-12"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:CaseInsensitiveComparer id="ref-11" xmlns:a3="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;m_compareInfo href="#ref-13"/&amp;gt;
+&amp;lt;/a3:CaseInsensitiveComparer&amp;gt;
+&amp;lt;a2:TableSchema_x002B_Column id="ref-12" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;_tableName href="#ref-6"/&amp;gt;
+&amp;lt;_columnName id="ref-14"&amp;gt;CheckBox13&amp;lt;/_columnName&amp;gt;
+&amp;lt;_dataType id="ref-15"&amp;gt;LOGICAL&amp;lt;/_dataType&amp;gt;
+&amp;lt;_isUDField&amp;gt;false&amp;lt;/_isUDField&amp;gt;
+&amp;lt;/a2:TableSchema_x002B_Column&amp;gt;
+&amp;lt;a5:CompareInfo id="ref-13" xmlns:a5="http://schemas.microsoft.com/clr/ns/System.Globalization"&amp;gt;
+&amp;lt;win32LCID&amp;gt;1033&amp;lt;/win32LCID&amp;gt;
+&amp;lt;culture&amp;gt;1033&amp;lt;/culture&amp;gt;
+&amp;lt;m_name id="ref-16"&amp;gt;en-US&amp;lt;/m_name&amp;gt;
+&amp;lt;/a5:CompareInfo&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>1</block><order>1</order><text>
+
+function {RESULT}_forThisRow returns logical private (buffer cur for ttPart).
+    define variable result as logical initial false no-undo. 
+    define buffer org for ttPart.
+
+    if cur.RowMod &lt;&gt; {&amp;RowState_Unchanged} then do:
+        if cur.RowMod eq {&amp;RowState_Modified} then do:
+            find first org where org.RowMod = {&amp;RowState_Unchanged} and 
+                    org.RowIdent = cur.RowIdent no-error.
+            if available (org) then do:
+                assign result = (org.CheckBox13 &lt;&gt; cur.CheckBox13) and (org.CheckBox13 = TRUE) and (cur.CheckBox13 = FALSE).
+            end.
+            else do: /* Old record is found. We assume that the field value _was_ changed */
+                assign result = true.
+            end.
+        end.
+        else if cur.RowMod = {&amp;RowState_Added} then do:
+            /* We do not process added records yet */
+        end.
+        else if cur.RowMod = {&amp;RowState_Deleted} then do:
+            /* We do not process delet</text></part><part><block>1</block><order>2</order><text>ed records yet */
+        end.
+    end.
+    else do: /* Unchanged record. This is erroneous fact */
+    end.
+    return result.
+end function.
+
+
+function {RESULT}_forAnyRow returns logical private ().
+    define buffer cur for ttPart.
+    for each cur:
+        if {RESULT}_forThisRow (buffer cur) then
+            return true.
+    end.
+    return false.
+end function.
+
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_Update}).
+    if available ttPartS then
+        return {RESULT}_forThisRow (buffer ttPartS).
+    
+    return {RESULT}_forAnyRow ().
+end function.</text></part></sourceCode></condition></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>SendMailActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.702.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SendMailActionConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;batchOption&amp;gt;OnceForAllMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;primTable id="ref-4"&amp;gt;ttPart&amp;lt;/primTable&amp;gt;
+&amp;lt;_async&amp;gt;true&amp;lt;/_async&amp;gt;
+&amp;lt;EmailConfig_x002B__validationError id="ref-5"&amp;gt;&amp;lt;/EmailConfig_x002B__validationError&amp;gt;
+&amp;lt;EmailConfig_x002B__name id="ref-6"&amp;gt;FAI Alert&amp;lt;/EmailConfig_x002B__name&amp;gt;
+&amp;lt;EmailConfig_x002B__async&amp;</text></part><part><order>2</order><text>gt;true&amp;lt;/EmailConfig_x002B__async&amp;gt;
+&amp;lt;EmailConfig_x002B__emailFrom href="#ref-7"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailTo href="#ref-8"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailCC href="#ref-9"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailSubject href="#ref-10"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailBody href="#ref-11"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailMimeHeader href="#ref-5"/&amp;gt;
+&amp;lt;/a1:SendMailActionConfig&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-7" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-12"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-13"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-9" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref</text></part><part><order>3</order><text>-14"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-10" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-15"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-11" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-16"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-12" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-17"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-13" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-18"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-14" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Coll</text></part><part><order>4</order><text>ections"&amp;gt;
+&amp;lt;_items href="#ref-19"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-15" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-20"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-16" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-21"/&amp;gt;
+&amp;lt;_size&amp;gt;7&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;7&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-17" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-22" xsi:type="SOAP-ENC:string"&amp;gt;Epicor@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-18" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-23" xsi:type="SOAP-ENC:string"&amp;gt;gonzalez@franklinproducts.net; tmatteson@franklinproducts.net; ksautter@franklinproducts.net; egonzalez@fran</text></part><part><order>5</order><text>klinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-19" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item href="#ref-5"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-20" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-24" xsi:type="SOAP-ENC:string"&amp;gt;FAI Compleation in TX&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-21" SOAP-ENC:arrayType="xsd:anyType[8]"&amp;gt;
+&amp;lt;item id="ref-25" xsi:type="SOAP-ENC:string"&amp;gt;FAI Completed for P/N &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-26"/&amp;gt;
+&amp;lt;item id="ref-27" xsi:type="SOAP-ENC:string"&amp;gt; By : &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-28"/&amp;gt;
+&amp;lt;item id="ref-29" xsi:type="SOAP-ENC:string"&amp;gt;
+Part Description: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-30"/&amp;gt;
+&amp;lt;item href="#ref-5"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-26" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;</text></part><part><order>6</order><text>gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-31"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-32"&amp;gt;PartNum&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-33"&amp;gt;ttPart&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-34"&amp;gt;PN&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-28" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType href="#ref-31"/&amp;gt;
+&amp;lt;Field id="ref-35"&amp;gt;CurrentUserId&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-36"&amp;gt;ttCallContextClient&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;All&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-37"&amp;gt;User&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_UDawareFieldQuery id="ref-30" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins</text></part><part><order>7</order><text>"&amp;gt;
+&amp;lt;IsUDField&amp;gt;false&amp;lt;/IsUDField&amp;gt;
+&amp;lt;FieldType id="ref-38"&amp;gt;CHARACTER&amp;lt;/FieldType&amp;gt;
+&amp;lt;Field id="ref-39"&amp;gt;PartDescription&amp;lt;/Field&amp;gt;
+&amp;lt;Table id="ref-40"&amp;gt;ttPart&amp;lt;/Table&amp;gt;
+&amp;lt;Filter&amp;gt;Added, Modified&amp;lt;/Filter&amp;gt;
+&amp;lt;Name id="ref-41"&amp;gt;Desc&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_UDawareFieldQuery&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run ttPart_Backup.
+run ttPartAttch_Backup.
+run ttPartCOO_Backup.
+run ttPartDim_Backup.
+run ttPartLangDesc_Backup.
+run ttPartPlant_Backup.
+run ttPartRestriction_Backup.
+run ttPartRestrictSubst_Backup.
+run ttPartRev_Backup.
+run ttPartRevAttch_Backup.
+run ttPartAudit_Backup.
+run ttPartCOPart_Backup.
+run ttPartRevInspPlan_Backup.
+run ttPartRevInspPlanAttch_Backup.
+run ttPartRevInspVend_Backup.
+run ttPartSubs_Backup.
+run ttPartBinInfo_Backup.
+run ttPartPC_Backup.
+run ttPartWhse_Backup.
+run ttPartUOM_Backup.
+run ttEntityGLC_Backup.
+run ttTaxExempt_Backup.
+
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_Update}).
+
+run ttPart_Restore.
+run ttPart_copyFromMatch.
+run ttPartAttch_Restore.
+run ttPartAttch_copyFromMatch.
+run ttPartCOO_Restore.
+run ttPartCOO_copyFromMatch.
+run ttPartDim_Restore.
+run ttPartDim_copyFromMatch.
+run ttPartLangDesc_Restore.
+run ttPartLangDesc_copyFromMatch.
+run ttPartPlant_Restore.
+run ttPartPlant_copyFromMatch.
+run ttPartRestriction_Rest</text></part><part><block>0</block><order>2</order><text>ore.
+run ttPartRestriction_copyFromMatch.
+run ttPartRestrictSubst_Restore.
+run ttPartRestrictSubst_copyFromMatch.
+run ttPartRev_Restore.
+run ttPartRev_copyFromMatch.
+run ttPartRevAttch_Restore.
+run ttPartRevAttch_copyFromMatch.
+run ttPartAudit_Restore.
+run ttPartAudit_copyFromMatch.
+run ttPartCOPart_Restore.
+run ttPartCOPart_copyFromMatch.
+run ttPartRevInspPlan_Restore.
+run ttPartRevInspPlan_copyFromMatch.
+run ttPartRevInspPlanAttch_Restore.
+run ttPartRevInspPlanAttch_copyFromMatch.
+run ttPartRevInspVend_Restore.
+run ttPartRevInspVend_copyFromMatch.
+run ttPartSubs_Restore.
+run ttPartSubs_copyFromMatch.
+run ttPartBinInfo_Restore.
+run ttPartBinInfo_copyFromMatch.
+run ttPartPC_Restore.
+run ttPartPC_copyFromMatch.
+run ttPartWhse_Restore.
+run ttPartWhse_copyFromMatch.
+run ttPartUOM_Restore.
+run ttPartUOM_copyFromMatch.
+run ttEntityGLC_Restore.
+run ttEntityGLC_copyFromMatch.
+run ttTaxExempt_Restore.
+run ttTaxExempt_copyFromMatch.</text></part><part><block>1</block><order>3</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_Update}
+
+
+    def var from_ as char no-undo init '':u.
+    def var to_ as char no-undo init '':u.
+    def var cc as char no-undo init '':u.
+    def var subject as char no-undo init '':u.
+    def var body as char no-undo init '':u.
+    def buffer ttPartBuf for ttPart.
+    def buffer ttCallContextClientBuf for ttCallContextClient.
+    def var keyfld as char extent {&amp;MAX_KEY} no-undo.
+    def var nkeyfld as integer no-undo.
+    def var keyval as char extent {&amp;MAX_KEY} no-undo.
+    def var hquery as handle no-undo.
+    def var hbuf as handle no-undo.
+    def var pos as integer no-undo.
+    def var hExecute as handle no-undo.
+
+    run Bpm/BpmEmail.p persistent set hExecute.
+
+        from_ = '':u.
+        to_ = '':u.
+        cc = '':u.
+        subject = '':u.
+        body = '':u.
+
+        assign from_ = from_ + 'Epicor@franklinproducts.net'.
+
+        assign to_ = to_ + 'gonzalez@franklinproducts.net; tmatteson</text></part><part><block>1</block><order>4</order><text>@franklinproducts.net; ksautter@franklinproducts.net; egonzalez@franklinproducts.net'.
+
+        assign subject = subject + 'FAI Compleation in TX'.
+
+        assign body = body + 'FAI Completed for P~/N '.
+
+        pos = 1.
+        for each ttPart:
+            if ttPart.RowMod = {&amp;RowState_Unchanged} and 
+                can-find (ttPartBuf where ttPartBuf.RowIdent = ttPart.RowIdent and
+                    ttPartBuf.RowMod = {&amp;RowState_Modified}) then next.
+define var fieldVal_body1 as character no-undo.
+assign fieldVal_body1 =  string (ttPart.PartNum).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body1 &lt;&gt; ? then fieldVal_body1 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + ' By : '.
+
+        pos = 1.
+        for each ttCallContextClient:
+define var fieldVal_body3 as character no-undo.
+assign fieldVal_body3 =  string (ttCallContextClient.CurrentUserId).
+
+            body = body + (if pos &gt; 1 then ';'</text></part><part><block>1</block><order>5</order><text> else '') + (if fieldVal_body3 &lt;&gt; ? then fieldVal_body3 else '').
+            pos = pos + 1.
+        end.
+
+        assign body = body + '~nPart Description: '.
+
+        pos = 1.
+        for each ttPart:
+            if ttPart.RowMod = {&amp;RowState_Deleted} then next.
+            if ttPart.RowMod = {&amp;RowState_Unchanged} then next.
+define var fieldVal_body5 as character no-undo.
+assign fieldVal_body5 =  string (ttPart.PartDescription).
+
+            body = body + (if pos &gt; 1 then ';' else '') + (if fieldVal_body5 &lt;&gt; ? then fieldVal_body5 else '').
+            pos = pos + 1.
+        end.
+
+            run SendEmail in hExecute (true, CUR-COMP, from_, to_, cc, subject, body, "":U).
+
+
+    if valid-handle (hExecute) then 
+        delete procedure hExecute.
+end procedure.</text></part></sourceCode></action></actions></directive></preProcDirectives><baseProcDirectives /><postProcDirectives /></method><method><code>TransOrderShip.CheckPrePartInfo</code><businessObject>TransOrderShip</businessObject><name>CheckPrePartInfo</name><preProcDirectives><directive><name>ReMove</name><order>20</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText>number of rows in the 'TRAP' query is not less than 1</conditionText><actionText>show informational message based on the Alert template 
+and send e-mail asynchronously based on the FAI ALert template</actionText><globalID>dea1d316-4dd1-459b-e411-b52ff89a3984</globalID><isUpToDate>True</isUpToDate><scope>Null</scope><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode><condition><order>1</order><typeName>QueryConditionType</typeName><operator /><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:QueryCondition_x002B_QueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Conditions/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;comparison id="ref-3"&amp;gt;&amp;amp;#62;=&amp;lt;/comparison&amp;gt;
+&amp;lt;numRows&amp;gt;1&amp;lt;/numRows&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryText id="ref-4"&amp;gt;for each TFOrdDtl no-lock  where  TFOrdDtl.Plant = &amp;amp;#39;06&amp;amp;#39;  ,  each Part no-lock  where (TFOrdDtl.Company = Part.Company and TFOrdDtl.PartNum = Part.PartNum ) and  Part.CheckBox14 = True &amp;lt;/Ed</text></part><part><order>2</order><text>itQueryConfig_x002B__queryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__realQueryText id="ref-5"&amp;gt;for each TFOrdDtl no-lock  where  TFOrdDtl.Plant = &amp;amp;#39;06&amp;amp;#39;  ,  each Part no-lock  where (TFOrdDtl.Company = Part.Company and TFOrdDtl.PartNum = Part.PartNum ) and  Part.CheckBox14 = True&amp;lt;/EditQueryConfig_x002B__realQueryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryField id="ref-6"&amp;gt;TFOrdDtl.AdditionalQty&amp;lt;/EditQueryConfig_x002B__queryField&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryFieldType id="ref-7"&amp;gt;&amp;lt;/EditQueryConfig_x002B__queryFieldType&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryName id="ref-8"&amp;gt;TRAP&amp;lt;/EditQueryConfig_x002B__queryName&amp;gt;
+&amp;lt;EditQueryConfig_x002B__validationError href="#ref-7"/&amp;gt;
+&amp;lt;/a1:QueryCondition_x002B_QueryConfig&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run {RESULT}_p_CheckPrePartInfo( input partNum,input vMsgText,input vMsgType,input vSubAvail, output {RESULT}).</text></part><part><block>1</block><order>1</order><text>
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_CheckPrePartInfo}).
+
+    def var query_result as handle no-undo.
+    def var buf as handle no-undo.
+    def var query_string as character no-undo.
+    def var required_rows as integer initial 1 no-undo.
+    def var actual_rows as integer initial 0 no-undo.
+
+    query_string = "for each TFOrdDtl no-lock  where  TFOrdDtl.Plant = '06'  ,  each Part no-lock  where (TFOrdDtl.Company = Part.Company and TFOrdDtl.PartNum = Part.PartNum ) and  Part.CheckBox14 = True".
+
+    run ExecuteFreeFormQuery (query_string, "=1", output dataset-handle query_result).
+    
+    assign buf = query_result:get-buffer-handle (1).
+    buf:find-first () no-error.
+
+    if not buf:available then 
+        actual_rows = 0.
+    else do:
+        def var query_iter as handle no-undo.
+        
+        create query query_iter.
+        query_iter:set-buffers (buf).
+        query_iter:query-prepare ("for each ":u + buf:table + " no-lock":</text></part><part><block>1</block><order>2</order><text>u).
+        query_iter:query-open ().
+        query_iter:get-first ().
+        do while not query_iter:query-off-end:
+	        if buf:available then do:
+                actual_rows = actual_rows + 1.
+	            if actual_rows &gt; required_rows then 
+                    leave.
+	        end.
+	        query_iter:get-next ().
+        end.
+    end.
+    delete object query_result.
+    return (actual_rows &gt;= required_rows).
+end function.</text></part></sourceCode></condition></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>InfoMsgActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:InfoMsgConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;dispType&amp;gt;Individual&amp;lt;/dispType&amp;gt;
+&amp;lt;_structuredText href="#ref-4"/&amp;gt;
+&amp;lt;RaiseExceptionConfig2_x002B_batchOption&amp;gt;OnceForAllMatching&amp;lt;/RaiseExceptionConfig2_x002B_batchOption&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__validationError id="ref-5"&amp;gt;&amp;lt;/RaiseExceptionConfig_x002B__validationError&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__name id="ref-6"&amp;gt;</text></part><part><order>2</order><text>Alert&amp;lt;/RaiseExceptionConfig_x002B__name&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__type&amp;gt;Info&amp;lt;/RaiseExceptionConfig_x002B__type&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__tableName href="#ref-5"/&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__fieldName href="#ref-5"/&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__rowId href="#ref-5"/&amp;gt;
+&amp;lt;/a1:InfoMsgConfig&amp;gt;
+&amp;lt;a2:StructuredMessage id="ref-4" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-7"/&amp;gt;
+&amp;lt;/a2:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-7" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-8"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-8" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-9" xsi:type="SOAP-ENC:string"&amp;gt;NOTE:  This part needs FAI Paperwork. &amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;</text></part><part><order>3</order><text>
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_CheckPrePartInfo}).</text></part><part><block>1</block><order>1</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_CheckPrePartInfo}
+
+define variable body as character no-undo.
+
+    define variable body_cnt as integer no-undo.
+    assign body = body + 'NOTE:  This part needs FAI Paperwork. '.
+
+{lib/PublishInfoMsg.i &amp;InfoMsg = body 
+        &amp;InfoSeverity   = {&amp;MESSAGE_INFO}
+        &amp;BOName         = "'TransOrderShip'"
+        &amp;BOMethod   = "'CheckPrePartInfo'"
+        &amp;UserIdent   = DCD-USERID
+        &amp;Company   = CUR-COMP
+        &amp;Plant   = CUR-PLANT
+        &amp;DisplayMode   = {&amp;MESSAGE_DISP_ALONE}}
+end procedure.</text></part></sourceCode></action><action><order>2</order><typeName>SendMailActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SendMailActionConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;batchOption&amp;gt;OnceForAllMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;primTable id="ref-4"&amp;gt;&amp;lt;/primTable&amp;gt;
+&amp;lt;_async&amp;gt;true&amp;lt;/_async&amp;gt;
+&amp;lt;EmailConfig_x002B__validationError href="#ref-4"/&amp;gt;
+&amp;lt;EmailConfig_x002B__name id="ref-5"&amp;gt;FAI ALert&amp;lt;/EmailConfig_x002B__name&amp;gt;
+&amp;lt;EmailConfig_x002B__async&amp;gt;true&amp;lt;/EmailConfig_x002B__async&amp;gt;
+&amp;lt</text></part><part><order>2</order><text>;EmailConfig_x002B__emailFrom href="#ref-6"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailTo href="#ref-7"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailCC href="#ref-8"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailSubject href="#ref-9"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailBody href="#ref-10"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailMimeHeader href="#ref-4"/&amp;gt;
+&amp;lt;/a1:SendMailActionConfig&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-6" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-11"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-7" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-12"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-13"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;</text></part><part><order>3</order><text>a3:StructuredMessage id="ref-9" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-14"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-10" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-15"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-11" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-16"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-12" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-17"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-13" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-18"/&amp;gt;
+&amp;</text></part><part><order>4</order><text>lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-14" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-19"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-15" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-20"/&amp;gt;
+&amp;lt;_size&amp;gt;3&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;3&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-16" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-21" xsi:type="SOAP-ENC:string"&amp;gt;Epicor@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-17" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-22" xsi:type="SOAP-ENC:string"&amp;gt;spare@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-18" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item href="#r</text></part><part><order>5</order><text>ef-4"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-19" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-23" xsi:type="SOAP-ENC:string"&amp;gt;EPICOR Alert:&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-20" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-24" xsi:type="SOAP-ENC:string"&amp;gt;The following part needs FAI Paperwork.
+PN: &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-25"/&amp;gt;
+&amp;lt;item href="#ref-4"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_ScalarParam id="ref-25" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Name id="ref-26"&amp;gt;partNum&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_ScalarParam&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_CheckPrePartInfo}).</text></part><part><block>1</block><order>1</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_CheckPrePartInfo}
+
+
+    def var from_ as char no-undo init '':u.
+    def var to_ as char no-undo init '':u.
+    def var cc as char no-undo init '':u.
+    def var subject as char no-undo init '':u.
+    def var body as char no-undo init '':u.
+    def var keyfld as char extent {&amp;MAX_KEY} no-undo.
+    def var nkeyfld as integer no-undo.
+    def var keyval as char extent {&amp;MAX_KEY} no-undo.
+    def var hquery as handle no-undo.
+    def var hbuf as handle no-undo.
+    def var pos as integer no-undo.
+    def var hExecute as handle no-undo.
+
+    run Bpm/BpmEmail.p persistent set hExecute.
+
+        from_ = '':u.
+        to_ = '':u.
+        cc = '':u.
+        subject = '':u.
+        body = '':u.
+
+        assign from_ = from_ + 'Epicor@franklinproducts.net'.
+
+        assign to_ = to_ + 'spare@franklinproducts.net'.
+
+        assign subject = subject + 'EPICOR Alert:'.
+
+        assign body = body + 'The following p</text></part><part><block>1</block><order>2</order><text>art needs FAI Paperwork.~nPN: '.
+
+        assign body = body + (if partNum &lt;&gt; ? then string (partNum) else '').
+
+            run SendEmail in hExecute (true, CUR-COMP, from_, to_, cc, subject, body, "":U).
+
+
+    if valid-handle (hExecute) then 
+        delete procedure hExecute.
+end procedure.</text></part></sourceCode></action></actions></directive></preProcDirectives><baseProcDirectives /><postProcDirectives /></method><method><code>TransOrderShip.ValidatePartNum</code><businessObject>TransOrderShip</businessObject><name>ValidatePartNum</name><preProcDirectives><directive><name>Trap for FAI REMOVE</name><order>20</order><isEnabled>False</isEnabled><companyIndependent>False</companyIndependent><preventDeadloops>False</preventDeadloops><reenterMax>1000</reenterMax><conditionText>number of rows in the 'TRAP' query is not less than 1</conditionText><actionText>show informational message based on the MSG template 
+and send e-mail asynchronously based on the Alert template</actionText><globalID>9dc29260-ba73-f68a-e411-b62f42d973cb</globalID><isUpToDate>True</isUpToDate><scope>Null</scope><cgcCode /><conditions><sourceCode>/*Add source code that should be executed before the designed conditions here*/
+
+{&amp;CALL_DESIGNED_CONDITIONS}
+
+/*Add source code that should be executed after the designed conditions here*/</sourceCode><condition><order>1</order><typeName>QueryConditionType</typeName><operator /><prefix /><postfix /><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:QueryCondition_x002B_QueryConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Conditions/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;comparison id="ref-3"&amp;gt;&amp;amp;#62;=&amp;lt;/comparison&amp;gt;
+&amp;lt;numRows&amp;gt;1&amp;lt;/numRows&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryText id="ref-4"&amp;gt;for each TFOrdDtl no-lock  where  TFOrdDtl.Plant = &amp;amp;#39;06&amp;amp;#39;  ,  each Part no-lock  where (TFOrdDtl.Company = Part.Company and TFOrdDtl.PartNum = Part.PartNum ) and  Part.CheckBox14 = True &amp;lt;/Ed</text></part><part><order>2</order><text>itQueryConfig_x002B__queryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__realQueryText id="ref-5"&amp;gt;for each TFOrdDtl no-lock  where  TFOrdDtl.Plant = &amp;amp;#39;06&amp;amp;#39;  ,  each Part no-lock  where (TFOrdDtl.Company = Part.Company and TFOrdDtl.PartNum = Part.PartNum ) and  Part.CheckBox14 = True&amp;lt;/EditQueryConfig_x002B__realQueryText&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryField id="ref-6"&amp;gt;TFOrdDtl.AdditionalQty&amp;lt;/EditQueryConfig_x002B__queryField&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryFieldType id="ref-7"&amp;gt;&amp;lt;/EditQueryConfig_x002B__queryFieldType&amp;gt;
+&amp;lt;EditQueryConfig_x002B__queryName id="ref-8"&amp;gt;TRAP&amp;lt;/EditQueryConfig_x002B__queryName&amp;gt;
+&amp;lt;EditQueryConfig_x002B__validationError href="#ref-7"/&amp;gt;
+&amp;lt;/a1:QueryCondition_x002B_QueryConfig&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>run {RESULT}_p_ValidatePartNum( input ipPartNum, output {RESULT}).</text></part><part><block>1</block><order>1</order><text>
+
+function {RESULT}_p returns logical private ({&amp;DECL_INPUT_FS_ValidatePartNum}).
+
+    def var query_result as handle no-undo.
+    def var buf as handle no-undo.
+    def var query_string as character no-undo.
+    def var required_rows as integer initial 1 no-undo.
+    def var actual_rows as integer initial 0 no-undo.
+
+    query_string = "for each TFOrdDtl no-lock  where  TFOrdDtl.Plant = '06'  ,  each Part no-lock  where (TFOrdDtl.Company = Part.Company and TFOrdDtl.PartNum = Part.PartNum ) and  Part.CheckBox14 = True".
+
+    run ExecuteFreeFormQuery (query_string, "=1", output dataset-handle query_result).
+    
+    assign buf = query_result:get-buffer-handle (1).
+    buf:find-first () no-error.
+
+    if not buf:available then 
+        actual_rows = 0.
+    else do:
+        def var query_iter as handle no-undo.
+        
+        create query query_iter.
+        query_iter:set-buffers (buf).
+        query_iter:query-prepare ("for each ":u + buf:table + " no-lock":u</text></part><part><block>1</block><order>2</order><text>).
+        query_iter:query-open ().
+        query_iter:get-first ().
+        do while not query_iter:query-off-end:
+	        if buf:available then do:
+                actual_rows = actual_rows + 1.
+	            if actual_rows &gt; required_rows then 
+                    leave.
+	        end.
+	        query_iter:get-next ().
+        end.
+    end.
+    delete object query_result.
+    return (actual_rows &gt;= required_rows).
+end function.</text></part></sourceCode></condition></conditions><actions><sourceCode>/*Add source code that should be executed before the designed actions here*/
+
+{&amp;CALL_DESIGNED_ACTIONS}
+
+/*Add source code that should be executed after the designed actions here*/</sourceCode><action><order>1</order><typeName>InfoMsgActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:InfoMsgConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;dispType&amp;gt;Individual&amp;lt;/dispType&amp;gt;
+&amp;lt;_structuredText href="#ref-4"/&amp;gt;
+&amp;lt;RaiseExceptionConfig2_x002B_batchOption&amp;gt;OnceForAllMatching&amp;lt;/RaiseExceptionConfig2_x002B_batchOption&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__validationError id="ref-5"&amp;gt;&amp;lt;/RaiseExceptionConfig_x002B__validationError&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__name id="ref-6"&amp;gt;</text></part><part><order>2</order><text>MSG&amp;lt;/RaiseExceptionConfig_x002B__name&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__type&amp;gt;Info&amp;lt;/RaiseExceptionConfig_x002B__type&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__tableName href="#ref-5"/&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__fieldName href="#ref-5"/&amp;gt;
+&amp;lt;RaiseExceptionConfig_x002B__rowId href="#ref-5"/&amp;gt;
+&amp;lt;/a1:InfoMsgConfig&amp;gt;
+&amp;lt;a2:StructuredMessage id="ref-4" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-7"/&amp;gt;
+&amp;lt;/a2:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-7" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-8"/&amp;gt;
+&amp;lt;_size&amp;gt;3&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;3&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-8" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-9" xsi:type="SOAP-ENC:string"&amp;gt;The following part number requries FAI Paperwork.
+ &amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-10"/&amp;gt;
+&amp;lt;item</text></part><part><order>3</order><text> href="#ref-5"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a2:StructuredMessage_x002B_ScalarParam id="ref-10" xmlns:a2="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Name id="ref-11"&amp;gt;ipPartNum&amp;lt;/Name&amp;gt;
+&amp;lt;/a2:StructuredMessage_x002B_ScalarParam&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_ValidatePartNum}).</text></part><part><block>1</block><order>1</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_ValidatePartNum}
+
+define variable body as character no-undo.
+
+    define variable body_cnt as integer no-undo.
+    assign body = body + 'The following part number requries FAI Paperwork.~n '.
+
+    assign body = body + (if ipPartNum &lt;&gt; ? then string (ipPartNum) else '').
+
+{lib/PublishInfoMsg.i &amp;InfoMsg = body 
+        &amp;InfoSeverity   = {&amp;MESSAGE_INFO}
+        &amp;BOName         = "'TransOrderShip'"
+        &amp;BOMethod   = "'ValidatePartNum'"
+        &amp;UserIdent   = DCD-USERID
+        &amp;Company   = CUR-COMP
+        &amp;Plant   = CUR-PLANT
+        &amp;DisplayMode   = {&amp;MESSAGE_DISP_ALONE}}
+end procedure.</text></part></sourceCode></action><action><order>2</order><typeName>SendMailActionType</typeName><terminateOnErr>False</terminateOnErr><data><part><order>1</order><text>&lt;Root&gt;&lt;SystemVersion&gt;2.5.607.0&lt;/SystemVersion&gt;&lt;CustomVersion&gt;1.0&lt;/CustomVersion&gt;&lt;Body&gt;&amp;lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&amp;gt;
+&amp;lt;SOAP-ENV:Body&amp;gt;
+&amp;lt;a1:SendMailActionConfig id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Configurations/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;batchOption&amp;gt;OnceForAllMatching&amp;lt;/batchOption&amp;gt;
+&amp;lt;primTable id="ref-4"&amp;gt;&amp;lt;/primTable&amp;gt;
+&amp;lt;_async&amp;gt;true&amp;lt;/_async&amp;gt;
+&amp;lt;EmailConfig_x002B__validationError href="#ref-4"/&amp;gt;
+&amp;lt;EmailConfig_x002B__name id="ref-5"&amp;gt;Alert&amp;lt;/EmailConfig_x002B__name&amp;gt;
+&amp;lt;EmailConfig_x002B__async&amp;gt;true&amp;lt;/EmailConfig_x002B__async&amp;gt;
+&amp;lt;Ema</text></part><part><order>2</order><text>ilConfig_x002B__emailFrom href="#ref-6"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailTo href="#ref-7"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailCC href="#ref-8"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailSubject href="#ref-9"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailBody href="#ref-10"/&amp;gt;
+&amp;lt;EmailConfig_x002B__emailMimeHeader href="#ref-4"/&amp;gt;
+&amp;lt;/a1:SendMailActionConfig&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-6" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-11"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-7" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-12"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-8" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-13"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:S</text></part><part><order>3</order><text>tructuredMessage id="ref-9" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-14"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a3:StructuredMessage id="ref-10" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Items href="#ref-15"/&amp;gt;
+&amp;lt;/a3:StructuredMessage&amp;gt;
+&amp;lt;a4:ArrayList id="ref-11" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-16"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-12" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-17"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-13" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-18"/&amp;gt;
+&amp;lt;_</text></part><part><order>4</order><text>size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-14" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-19"/&amp;gt;
+&amp;lt;_size&amp;gt;1&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;1&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;a4:ArrayList id="ref-15" xmlns:a4="http://schemas.microsoft.com/clr/ns/System.Collections"&amp;gt;
+&amp;lt;_items href="#ref-20"/&amp;gt;
+&amp;lt;_size&amp;gt;3&amp;lt;/_size&amp;gt;
+&amp;lt;_version&amp;gt;3&amp;lt;/_version&amp;gt;
+&amp;lt;/a4:ArrayList&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-16" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-21" xsi:type="SOAP-ENC:string"&amp;gt;Epicor@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-17" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-22" xsi:type="SOAP-ENC:string"&amp;gt;spare@franklinproducts.net&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-18" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item href="#ref-4</text></part><part><order>5</order><text>"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-19" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-23" xsi:type="SOAP-ENC:string"&amp;gt;EPICOR Alert&amp;lt;/item&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;SOAP-ENC:Array id="ref-20" SOAP-ENC:arrayType="xsd:anyType[4]"&amp;gt;
+&amp;lt;item id="ref-24" xsi:type="SOAP-ENC:string"&amp;gt;The following part number requries FAI paperwork.
+&amp;lt;/item&amp;gt;
+&amp;lt;item href="#ref-25"/&amp;gt;
+&amp;lt;item href="#ref-4"/&amp;gt;
+&amp;lt;/SOAP-ENC:Array&amp;gt;
+&amp;lt;a3:StructuredMessage_x002B_ScalarParam id="ref-25" xmlns:a3="http://schemas.microsoft.com/clr/nsassem/Epicor.Mfg.UI.Bpm.Miscellaneous/Epicor.Mfg.Bpm.BPMPlugins"&amp;gt;
+&amp;lt;Name id="ref-26"&amp;gt;ipPartNum&amp;lt;/Name&amp;gt;
+&amp;lt;/a3:StructuredMessage_x002B_ScalarParam&amp;gt;
+&amp;lt;/SOAP-ENV:Body&amp;gt;
+&amp;lt;/SOAP-ENV:Envelope&amp;gt;
+&lt;/Body&gt;&lt;/Root&gt;</text></part></data><sourceCode><part><block>0</block><order>1</order><text>
+run {RESULT}_execute ({&amp;USE_INPUT-OUTPUT_M_ValidatePartNum}).</text></part><part><block>1</block><order>1</order><text>
+procedure {RESULT}_execute:
+{&amp;DECL_INPUT-OUTPUT_P_ValidatePartNum}
+
+
+    def var from_ as char no-undo init '':u.
+    def var to_ as char no-undo init '':u.
+    def var cc as char no-undo init '':u.
+    def var subject as char no-undo init '':u.
+    def var body as char no-undo init '':u.
+    def var keyfld as char extent {&amp;MAX_KEY} no-undo.
+    def var nkeyfld as integer no-undo.
+    def var keyval as char extent {&amp;MAX_KEY} no-undo.
+    def var hquery as handle no-undo.
+    def var hbuf as handle no-undo.
+    def var pos as integer no-undo.
+    def var hExecute as handle no-undo.
+
+    run Bpm/BpmEmail.p persistent set hExecute.
+
+        from_ = '':u.
+        to_ = '':u.
+        cc = '':u.
+        subject = '':u.
+        body = '':u.
+
+        assign from_ = from_ + 'Epicor@franklinproducts.net'.
+
+        assign to_ = to_ + 'spare@franklinproducts.net'.
+
+        assign subject = subject + 'EPICOR Alert'.
+
+        assign body = body + 'The following par</text></part><part><block>1</block><order>2</order><text>t number requries FAI paperwork.~n'.
+
+        assign body = body + (if ipPartNum &lt;&gt; ? then string (ipPartNum) else '').
+
+            run SendEmail in hExecute (true, CUR-COMP, from_, to_, cc, subject, body, "":U).
+
+
+    if valid-handle (hExecute) then 
+        delete procedure hExecute.
+end procedure.</text></part></sourceCode></action></actions></directive></preProcDirectives><baseProcDirectives /><postProcDirectives /></method></methods></boSourceGroup><externalData /></directiveGroup>

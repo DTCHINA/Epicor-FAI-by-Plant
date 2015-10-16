@@ -1,7 +1,7 @@
 <?xml version="1.0" standalone="yes"?>
 <CustomizationDS xmlns="http://tempuri.org/XMLSchema.xsd">
   <xs:schema id="CustomizationDS" targetNamespace="http://tempuri.org/XMLSchema.xsd" xmlns:mstns="http://tempuri.org/XMLSchema.xsd" xmlns="http://tempuri.org/XMLSchema.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" xmlns:msprop="urn:schemas-microsoft-com:xml-msprop" attributeFormDefault="qualified" elementFormDefault="qualified">
-    <xs:element name="CustomizationDS" msdata:IsDataSet="true" msdata:Locale="" msprop:Key2="App.JobEntry.JobEntryForm" msprop:CGCCode="" msprop:CommentText="905 Updated Job Entry&#xA;[spare: 12/13/2011 3:00:35 PM]&#xA;&#xA;Added Creation Date&#xA;[spare: 4/16/2012 9:45:09 AM]&#xA;&#xA;&#xA;&#xA;&#xA;&#xA;&#xA;[manager: 8/14/2015 11:45:41 AM]&#xA;&#xA;&#xA;&#xA;[spare: 8/21/2015 11:38:06 AM]" msprop:Key3="" msprop:Key1="FPI_JobEntry" msprop:Description="Fpi Job Entry" msprop:TypeCode="Customization" msprop:ProductID="EP" msprop:Company="CIC68322" msprop:BuildVersion="9.05.702A">
+    <xs:element name="CustomizationDS" msdata:IsDataSet="true" msdata:Locale="" msprop:Key2="App.JobEntry.JobEntryForm" msprop:CGCCode="" msprop:CommentText="" msprop:Key3="" msprop:Key1="FPI_JobEntry" msprop:Description="Fpi Job Entry" msprop:TypeCode="Customization" msprop:ProductID="EP" msprop:Company="CIC68322" msprop:BuildVersion="9.05.702A">
       <xs:complexType>
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element name="Controls">
@@ -453,6 +453,42 @@
     <ControlName>epiTextBoxC11</ControlName>
     <Key>7074be72-016b-444a-9579-cc33df809c0e</Key>
     <ParentControlKey>94e91fb3-8367-44c5-a537-412e38b3e181</ParentControlKey>
+    <ControlType>Epicor.Mfg.UI.FrameWork.EpiTextBox</ControlType>
+    <Company />
+    <Plant />
+    <DcdUserId />
+    <GroupID />
+    <ControlsID />
+  </Controls>
+  <Controls>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiGroupBoxC8</ControlName>
+    <Key>c6084265-fb92-4e34-a31d-3b2206433014</Key>
+    <ParentControlKey>d08296b1-a700-4a45-aa1a-475309696931</ParentControlKey>
+    <ControlType>Epicor.Mfg.UI.FrameWork.EpiGroupBox</ControlType>
+    <Company />
+    <Plant />
+    <DcdUserId />
+    <GroupID />
+    <ControlsID />
+  </Controls>
+  <Controls>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiLabelC2</ControlName>
+    <Key>09803bac-f7dc-4a9b-9212-1664dcab9935</Key>
+    <ParentControlKey>c6084265-fb92-4e34-a31d-3b2206433014</ParentControlKey>
+    <ControlType>Epicor.Mfg.UI.FrameWork.EpiLabel</ControlType>
+    <Company />
+    <Plant />
+    <DcdUserId />
+    <GroupID />
+    <ControlsID />
+  </Controls>
+  <Controls>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <ParentControlKey>c6084265-fb92-4e34-a31d-3b2206433014</ParentControlKey>
     <ControlType>Epicor.Mfg.UI.FrameWork.EpiTextBox</ControlType>
     <Company />
     <Plant />
@@ -1083,16 +1119,15 @@ Imports Epicor.Mfg.UI.Customization
 Imports Epicor.Mfg.UI.Adapters
 Imports Epicor.Mfg.UI.Searches
 Imports Epicor.Mfg.BO
-
+Imports Infragistics.Win.UltraWinGrid
 
 Module Script 
 
 
 	'// ** Wizard Insert Location - Do Not Remove 'Begin/End Wizard Added Module Level Variables' Comments! ** 
 	'// Begin Wizard Added Module Level Variables ** 
-
+		
 	'// End Wizard Added Module Level Variables ** 
-
 
 	'// Add Custom Module Level Variables Here ** 
 
@@ -1103,10 +1138,13 @@ Module Script
 		'// ** Wizard Insert Location - Do not delete 'Begin/End Wizard Added Variable Intialization' lines ** 
 		'// Begin Wizard Added Variable Intialization 
 
+			AddHandler Script.JobHead_Column.ColumnChanging, AddressOf Script.JobHead_AfterFieldChange
+
 		'// End Wizard Added Variable Intialization 
 		'// Begin Custom Method Calls 
 
 		
+		CreateRowRuleJobHeadShortChar01NotEqual_Constant_NullValue()
 		'// End Custom Method Calls 
 	End Sub 
 
@@ -1118,13 +1156,59 @@ Module Script
 		'// ** Wizard Insert Location - Do not delete 'Begin/End Wizard Added Object Disposal' lines ** 
 		'// Begin Wizard Added Object Disposal 
 
+		RemoveHandler Script.JobHead_Column.ColumnChanging, AddressOf Script.JobHead_AfterFieldChange
 				'// End Wizard Added Object Disposal 
 		'// Begin Custom Code Disposal 
 
 		'// End Custom Code Disposal 
 	End Sub 
 
+Private Sub FAI_TRAP
 
+	Dim EDVJobHead As EpiDataView = CType(oTrans.EpiDataViews("JobHead"), EpiDataView)
+	Dim ReleaseTrap As Boolean = EDVJobHead.dataView(EDVJobHead.Row)("JobReleased")
+
+	oTrans.PushStatusText("Phase......1",false)
+
+	If ReleaseTrap = True then 
+		MessageBox.show("test")
+	End If
+
+End Sub
+
+
+	Private Sub JobHead_AfterFieldChange(ByVal sender As Object, ByVal args As DataColumnChangeEventArgs)
+		' ** Argument Properties and Uses **
+		' args.Row("FieldName")
+		' args.Column, args.ProposedValue, args.Row
+		' Add Event Handler Code
+'		Select Case args.Column.ColumnName
+'	
+'			Case "JobReleased"
+'			'FAI_Trap()
+'		End Select
+'			FAI_Trap()
+	End Sub
+
+	
+
+
+
+	
+
+
+
+
+	Private Sub CreateRowRuleJobHeadShortChar01NotEqual_Constant_NullValue()
+		' Description: FAI
+		' **** begin autogenerated code ****
+		Dim okJobHead_ShortChar01 As RuleAction = RuleAction.AddControlSettings(Script.oTrans, "JobHead.ShortChar01", SettingStyle.OK)
+		Dim ruleActions() As RuleAction = New RuleAction() {okJobHead_ShortChar01}
+		' Create RowRule and add to the EpiDataView.
+		Dim rrCreateRowRuleJobHeadShortChar01NotEqual_Constant_NullValue As RowRule = New RowRule("JobHead.ShortChar01", RuleCondition.NotEqual, "Constant: NullValue", ruleActions)
+		CType(Script.oTrans.EpiDataViews("JobHead"),EpiDataView).AddRowRule(rrCreateRowRuleJobHeadShortChar01NotEqual_Constant_NullValue)
+		' **** end autogenerated code ****
+	End Sub
 
 End Module 
 </PropertyValue>
@@ -4416,6 +4500,510 @@ End Module
     <Key>7074be72-016b-444a-9579-cc33df809c0e</Key>
     <PropertyName>EpiBinding</PropertyName>
     <PropertyValue>JobHead.ProdQty</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>chkMassPrint</ControlName>
+    <Key>e56504ae-c608-4841-962a-5b540fdae4d3</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>124</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>chkMassPrint</ControlName>
+    <Key>e56504ae-c608-4841-962a-5b540fdae4d3</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>20</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>lblMassPrint</ControlName>
+    <Key>136ff704-4489-415d-857b-50c77a13e492</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>20</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>lblMassPrint</ControlName>
+    <Key>136ff704-4489-415d-857b-50c77a13e492</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>6</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>lblMassPrint</ControlName>
+    <Key>136ff704-4489-415d-857b-50c77a13e492</Key>
+    <PropertyName>Width</PropertyName>
+    <PropertyValue>112</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>lblMassPrint</ControlName>
+    <Key>136ff704-4489-415d-857b-50c77a13e492</Key>
+    <PropertyName>Height</PropertyName>
+    <PropertyValue>20</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>dteLastPrinted</ControlName>
+    <Key>e2113199-7e79-4018-94ef-47a212282a86</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>124</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>dteLastPrinted</ControlName>
+    <Key>e2113199-7e79-4018-94ef-47a212282a86</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>36</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>lblLastPrinted</ControlName>
+    <Key>a2e08d90-f388-4432-b326-efec39210343</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>36</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>lblLastPrinted</ControlName>
+    <Key>a2e08d90-f388-4432-b326-efec39210343</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>3</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>lblLastPrinted</ControlName>
+    <Key>a2e08d90-f388-4432-b326-efec39210343</Key>
+    <PropertyName>Width</PropertyName>
+    <PropertyValue>115</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>lblLastPrinted</ControlName>
+    <Key>a2e08d90-f388-4432-b326-efec39210343</Key>
+    <PropertyName>Height</PropertyName>
+    <PropertyValue>24</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>grpPrint</ControlName>
+    <Key>5561cc0b-9c8b-4b0f-baa2-5748fb39beb1</Key>
+    <PropertyName>Width</PropertyName>
+    <PropertyValue>208</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>grpPrint</ControlName>
+    <Key>5561cc0b-9c8b-4b0f-baa2-5748fb39beb1</Key>
+    <PropertyName>Height</PropertyName>
+    <PropertyValue>61</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiGroupBoxC8</ControlName>
+    <Key>c6084265-fb92-4e34-a31d-3b2206433014</Key>
+    <PropertyName>ChildIndex</PropertyName>
+    <PropertyValue>0</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiGroupBoxC8</ControlName>
+    <Key>c6084265-fb92-4e34-a31d-3b2206433014</Key>
+    <PropertyName>Parent</PropertyName>
+    <PropertyValue>d08296b1-a700-4a45-aa1a-475309696931</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiGroupBoxC8</ControlName>
+    <Key>c6084265-fb92-4e34-a31d-3b2206433014</Key>
+    <PropertyName>Height</PropertyName>
+    <PropertyValue>39</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiGroupBoxC8</ControlName>
+    <Key>c6084265-fb92-4e34-a31d-3b2206433014</Key>
+    <PropertyName>Width</PropertyName>
+    <PropertyValue>208</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiGroupBoxC8</ControlName>
+    <Key>c6084265-fb92-4e34-a31d-3b2206433014</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>580</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiGroupBoxC8</ControlName>
+    <Key>c6084265-fb92-4e34-a31d-3b2206433014</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>204</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiLabelC2</ControlName>
+    <Key>09803bac-f7dc-4a9b-9212-1664dcab9935</Key>
+    <PropertyName>ChildIndex</PropertyName>
+    <PropertyValue>1</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiLabelC2</ControlName>
+    <Key>09803bac-f7dc-4a9b-9212-1664dcab9935</Key>
+    <PropertyName>Parent</PropertyName>
+    <PropertyValue>c6084265-fb92-4e34-a31d-3b2206433014</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiLabelC2</ControlName>
+    <Key>09803bac-f7dc-4a9b-9212-1664dcab9935</Key>
+    <PropertyName>Height</PropertyName>
+    <PropertyValue>24</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiLabelC2</ControlName>
+    <Key>09803bac-f7dc-4a9b-9212-1664dcab9935</Key>
+    <PropertyName>Width</PropertyName>
+    <PropertyValue>70</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiLabelC2</ControlName>
+    <Key>09803bac-f7dc-4a9b-9212-1664dcab9935</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>4</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiLabelC2</ControlName>
+    <Key>09803bac-f7dc-4a9b-9212-1664dcab9935</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>8</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiGroupBoxC8</ControlName>
+    <Key>c6084265-fb92-4e34-a31d-3b2206433014</Key>
+    <PropertyName>Text</PropertyName>
+    <PropertyValue />
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiLabelC2</ControlName>
+    <Key>09803bac-f7dc-4a9b-9212-1664dcab9935</Key>
+    <PropertyName>Text</PropertyName>
+    <PropertyValue>FAI Status:</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <PropertyName>ChildIndex</PropertyName>
+    <PropertyValue>0</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <PropertyName>Parent</PropertyName>
+    <PropertyValue>c6084265-fb92-4e34-a31d-3b2206433014</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <PropertyName>Height</PropertyName>
+    <PropertyValue>24</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <PropertyName>Width</PropertyName>
+    <PropertyValue>117</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>84</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>8</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <PropertyName>EpiBinding</PropertyName>
+    <PropertyValue>JobHead.ShortChar01</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>epiTextBoxC12</ControlName>
+    <Key>aae8a7d1-5fc9-4ad3-ae44-b7bdeadd2fe4</Key>
+    <PropertyName>EpiLabel</PropertyName>
+    <PropertyValue>epiLabelC2</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>grpPrint</ControlName>
+    <Key>5561cc0b-9c8b-4b0f-baa2-5748fb39beb1</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>580</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>grpPrint</ControlName>
+    <Key>5561cc0b-9c8b-4b0f-baa2-5748fb39beb1</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>144</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>grpStatus</ControlName>
+    <Key>0ec52366-2465-489b-8987-12b32eda556e</Key>
+    <PropertyName>Width</PropertyName>
+    <PropertyValue>144</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>grpStatus</ControlName>
+    <Key>0ec52366-2465-489b-8987-12b32eda556e</Key>
+    <PropertyName>Height</PropertyName>
+    <PropertyValue>140</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>JobEntryForm</ControlName>
+    <Key>2dcd1674-5e34-4d98-b493-c75747027376</Key>
+    <PropertyName>Left</PropertyName>
+    <PropertyValue>311</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>JobEntryForm</FormsID>
+    <ControlName>JobEntryForm</ControlName>
+    <Key>2dcd1674-5e34-4d98-b493-c75747027376</Key>
+    <PropertyName>Top</PropertyName>
+    <PropertyValue>95</PropertyValue>
     <Company />
     <Plant />
     <DcdUserID />

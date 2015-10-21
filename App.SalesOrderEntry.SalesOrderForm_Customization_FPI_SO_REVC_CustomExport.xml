@@ -732,7 +732,6 @@ Public Class Script
 			If (args.Row &gt; -1) Then
 				if(xPartNum = "Reset") then return
 				epiFAIGrid.DataSource = nothing
-				MessageBox.Show("Reset")
 				xPartNum = "Reset"
 			End If
 		End If
@@ -770,7 +769,8 @@ Private Sub FAI_BOX
 		oTrans.PushStatusText("4", true)
 		d.ExecuteByIDParametrized("CIC68322-FAI-Part", ds, "", topNRecords, hasMoreRecords)
 		oTrans.PushStatusText("5", true)
-		epiFAIGrid.DataSource = d.QueryResults
+		epiFAIGrid.DataSource = d.QueryResults.Tables("Results")
+		epiFAIGrid.Refresh()
 		oTrans.PushStatusText("6", true)
 		SetGrid(epiFAIGrid)
 		d.Dispose()
@@ -782,6 +782,7 @@ Private Sub FAI_BOX
 Private Sub SetGrid(epiFAIGrid As Epicor.Mfg.UI.FrameWork.EpiUltraGrid)
 	Dim msg As [String] = ""
 
+		oTrans.PushStatusText("6a", true)
 	For Each col As Infragistics.Win.UltraWinGrid.UltraGridColumn In epiFAIGrid.DisplayLayout.Bands(0).Columns
 		'			msg = msg + col.Key + " / " + col.Header.Caption + "\r\n";
 		col.Hidden = True
@@ -789,17 +790,21 @@ Private Sub SetGrid(epiFAIGrid As Epicor.Mfg.UI.FrameWork.EpiUltraGrid)
 
 	'MessageBox.Show(msg);
 
+		oTrans.PushStatusText("6b", true)
 	epiFAIGrid.DisplayLayout.Bands(0).Columns("PartPlant.CheckBox05").Hidden = False
+		oTrans.PushStatusText("6b1", true)
 	'epiFAIGrid.DisplayLayout.Bands(0).Columns("PartPlant.Plant").Hidden = True
 	epiFAIGrid.DisplayLayout.Bands(0).Columns("PartPlant.Character05").Hidden = False
 	epiFAIGrid.DisplayLayout.Bands(0).Columns("PartPlant.Date05").Hidden = False
 	epiFAIGrid.DisplayLayout.Bands(0).Columns("P1").Hidden = False
-	
+			oTrans.PushStatusText("6c", true)
+
 	epiFAIGrid.DisplayLayout.Bands(0).Columns("PartPlant.CheckBox05").Header.Caption = "REQ"
 	epiFAIGrid.DisplayLayout.Bands(0).Columns("P1").Header.Caption = "Plant"
 	epiFAIGrid.DisplayLayout.Bands(0).Columns("PartPlant.Character05").Header.Caption = "REV"
 	epiFAIGrid.DisplayLayout.Bands(0).Columns("PartPlant.Date05").Header.Caption = "Date"
 
+		oTrans.PushStatusText("6d", true)
 
 	End Sub
 
@@ -5332,7 +5337,7 @@ End Class
     <ControlName>releaseDetailPanel1</ControlName>
     <Key>c8990e33-8c1f-4ae6-9976-e72e0f05e624</Key>
     <PropertyName>Height</PropertyName>
-    <PropertyValue>622</PropertyValue>
+    <PropertyValue>591</PropertyValue>
     <Company />
     <Plant />
     <DcdUserID />
@@ -5344,7 +5349,7 @@ End Class
     <ControlName>releaseDetailPanel1</ControlName>
     <Key>c8990e33-8c1f-4ae6-9976-e72e0f05e624</Key>
     <PropertyName>Width</PropertyName>
-    <PropertyValue>862</PropertyValue>
+    <PropertyValue>881</PropertyValue>
     <Company />
     <Plant />
     <DcdUserID />

@@ -13751,7 +13751,7 @@ End Module
     <ControlName>epiTextBoxC11</ControlName>
     <Key>8d37954a-fa54-419c-a924-93e806455981</Key>
     <PropertyName>Height</PropertyName>
-    <PropertyValue>21</PropertyValue>
+    <PropertyValue>22</PropertyValue>
     <Company />
     <Plant />
     <DcdUserID />
@@ -14962,6 +14962,18 @@ End Module
     <FormsID>PartForm</FormsID>
     <ControlName>epiTXT_FAI</ControlName>
     <Key>78092018-ff4c-4481-b867-e1b3cc6babf0</Key>
+    <PropertyName>Enabled</PropertyName>
+    <PropertyValue>True</PropertyValue>
+    <Company />
+    <Plant />
+    <DcdUserID />
+    <GroupID />
+    <PropertiesID />
+  </Properties>
+  <Properties>
+    <FormsID>PartForm</FormsID>
+    <ControlName>epiDateTimeEditorC1</ControlName>
+    <Key>6e73e141-e2e6-4956-b999-ee9596654602</Key>
     <PropertyName>Enabled</PropertyName>
     <PropertyValue>False</PropertyValue>
     <Company />
